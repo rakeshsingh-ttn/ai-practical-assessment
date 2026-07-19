@@ -111,9 +111,38 @@ Mapped from [requirements-analysis.md](requirements-analysis.md) edge cases:
 | Same-status no-op | **Not tested** | Open → Open should 409 |
 | Whitespace-only comment | **Not tested** | Should 422 |
 | Missing `created_by` on export | **Not tested** | Should 422 |
-| Clear assignee (`assigned_to: null`) | **Not tested** | PATCH should unassign |
+| Clear assignee (`assigned_to: null`) | `test_clear_assignee` | PATCH unassigns |
+| CSV special-char quoting | **Not tested** | **Day 2:** description with `,` `"` `\n` — prove export round-trips via `csv.reader` |
 
 Gaps above are candidates for follow-up tests if time permits.
+
+---
+
+## Day 2 — Planned integration tests
+
+From smoke-test observations (2026-07-19); not failures, polish coverage:
+
+### `test_csv_export_escapes_special_characters`
+
+**Why:** Smoke test only hit seeded descriptions without commas, quotes, or newlines. `csv.writer` is used but never proven under nasty input.
+
+**Setup:**
+```python
+description = 'Says "hello", world\nSecond line'
+client.post("/api/tickets", json={
+    "title": "CSV escape test ticket",
+    "description": description,
+    "priority": "Low",
+    "created_by": users["alice"].id,
+})
+```
+
+**Assert:**
+- `GET /api/tickets/export?created_by={alice.id}` → 200
+- Parse response body with `csv.reader`; find row by title
+- `description` column equals original string exactly (no corruption, proper quoting)
+
+**File:** `tests/test_ticket_api.py`
 
 ---
 
