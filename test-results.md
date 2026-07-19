@@ -99,6 +99,38 @@
 
 ---
 
+## UI Smoke Test (manual, via browser)
+
+**Date:** 2026-07-19  
+**Environment:** Vite dev server on `:5173` proxying to backend on `:8000`  
+**UI:** http://localhost:5173  
+**Result:** **14/14 checks passed**, 0 failures
+
+| Check | Steps performed | Result |
+|-------|-----------------|--------|
+| View tickets from DB | Loaded list page | PASS — 13 tickets rendered (14 after create), priority/status badges, assignee + creator columns |
+| Search | Typed lowercase `vpn` in search box | PASS — 1 match "VPN not connecting", case-insensitive |
+| Filter | Selected status = Open | PASS — exactly the 3 Open tickets shown |
+| Backend validation surfaced in UI | Submitted create form with 2-char title `ab` | PASS — POST /api/tickets returned 422 (confirmed in network tab, so backend validation, not HTML5) and the Pydantic message "String should have at least 3 characters" rendered as an inline field error |
+| Create ticket via UI | Created "UI smoke test ticket" as acting-as user Alice Admin, priority High, assignee Bob Agent | PASS — ticket #14 created with `created_by` = acting-as user, redirected to detail page, status Open |
+| Detail view | Opened #14 | PASS — badges, creator, timestamp, editable details |
+| Update fields + reassign | Edited title to "UI smoke test ticket (edited)", changed assignee Bob Agent → Carol Manager, saved | PASS — persisted (verified via `GET /api/tickets/14`) |
+| Status change via UI | Clicked "Move to In Progress" on #14 | PASS — badge updated to In Progress; action buttons changed from [In Progress, Cancelled] to [Resolved, Cancelled] |
+| Valid-transitions-only UI | Observed Status Actions per status | PASS — UI only ever offers transitions allowed by the state machine |
+| Add comment | Posted a comment on #14 | PASS — rendered with author = acting-as user and timestamp |
+| Terminal state: Closed | Opened #4 | PASS — "read-only" banner, no status buttons, no Save button, comment form replaced by "Comments are disabled for tickets in Closed status." |
+| Terminal state: Cancelled | Opened #5 | PASS — same read-only treatment |
+| CSV export via UI | Clicked "Export my tickets (CSV)" as Alice Admin | PASS — `GET /api/tickets/export?created_by=1` returned 200 `text/csv` |
+| Console errors | Reviewed browser console for the whole session | PASS — zero errors |
+
+### Summary
+
+All Core acceptance criteria are now verified end-to-end — API-level via the earlier Swagger/curl smoke test (including persistence across restart and 409s for invalid transitions) and UI-level via this browser pass.
+
+**Two-layer state machine enforcement:** the frontend prevents invalid transitions by only rendering valid action buttons (and none in terminal states), while the backend independently rejects invalid transitions with **409**.
+
+---
+
 ## Known gaps (not blocking)
 
 From `test-strategy.md` — acceptable for Day 1; address on Day 2 if time permits:
@@ -107,7 +139,7 @@ From `test-strategy.md` — acceptable for Day 1; address on Day 2 if time permi
 - `status` / `priority` filter params — not yet in integration tests (manually verified in smoke test)
 - Whitespace-only comment message — not yet tested
 - **CSV special-char quoting** — scheduled Day 2 test (`test_csv_export_escapes_special_characters`); see `test-strategy.md`
-- Frontend e2e — manual UI smoke on Day 2 instead
+- Frontend e2e — manual UI smoke completed (see UI Smoke Test section above)
 
 ---
 

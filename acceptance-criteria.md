@@ -2,24 +2,24 @@
 
 ## Core
 
-- [ ] **Create via UI** — I can create a ticket from the React UI (title, description, priority, optional assignee); `createdBy` comes from the "acting as" user selector; new tickets start in **Open** status.
-- [ ] **View all tickets from DB** — The ticket list shows persisted tickets (not hardcoded) with id, title, priority, status, assignee, and creator.
-- [ ] **Detail view** — I can open a ticket and see all fields, the comment thread, and actions appropriate to the current status.
-- [ ] **Update fields and reassign** — I can edit title, description, priority, and assignee on **Open** and **In Progress** tickets; edits are blocked on **Resolved**, **Closed**, and **Cancelled** tickets.
-- [ ] **Add comments** — I can add comments on **Open**, **In Progress**, and **Resolved** tickets; each comment shows author and timestamp.
-- [ ] **Status only via valid transitions** — Status changes use only `POST /api/tickets/{id}/status`; allowed transitions succeed; all others are rejected (409).
-- [ ] **Data survives restart** — Tickets, comments, and seed data remain after stopping and restarting the backend.
-- [ ] **Backend validation prevents invalid records** — The API rejects bad input (short/missing title, invalid enums, non-existent users) before persisting.
-- [ ] **CSV export of self-created tickets** — Export downloads a CSV of all tickets where `createdBy` equals the currently selected acting-as user, including all ticket fields (all statuses).
+- [x] **Create via UI** — I can create a ticket from the React UI (title, description, priority, optional assignee); `createdBy` comes from the "acting as" user selector; new tickets start in **Open** status.
+- [x] **View all tickets from DB** — The ticket list shows persisted tickets (not hardcoded) with id, title, priority, status, assignee, and creator.
+- [x] **Detail view** — I can open a ticket and see all fields, the comment thread, and actions appropriate to the current status.
+- [x] **Update fields and reassign** — I can edit title, description, priority, and assignee on **Open** and **In Progress** tickets; edits are blocked on **Resolved**, **Closed**, and **Cancelled** tickets.
+- [x] **Add comments** — I can add comments on **Open**, **In Progress**, and **Resolved** tickets; each comment shows author and timestamp.
+- [x] **Status only via valid transitions** — Status changes use only `POST /api/tickets/{id}/status`; allowed transitions succeed; all others are rejected (409).
+- [x] **Data survives restart** — Tickets, comments, and seed data remain after stopping and restarting the backend.
+- [x] **Backend validation prevents invalid records** — The API rejects bad input (short/missing title, invalid enums, non-existent users) before persisting.
+- [x] **CSV export of self-created tickets** — Export downloads a CSV of all tickets where `createdBy` equals the currently selected acting-as user, including all ticket fields (all statuses).
 - [ ] **State-machine integration tests pass** — `pytest` proves every valid transition succeeds and invalid transitions (including from **Closed** and **Cancelled**) are rejected.
 - [ ] **No secrets in repo** — No `.env`, keys, or credentials committed; only `.env.example` is in version control.
-- [ ] **Search and filter** — Case-insensitive substring search on title/description plus filter by status and priority.
-- [ ] **Acting-as user selector** — Header dropdown of seeded users drives `createdBy` on creates/comments and CSV export scope.
+- [x] **Search and filter** — Case-insensitive substring search on title/description plus filter by status and priority.
+- [x] **Acting-as user selector** — Header dropdown of seeded users drives `createdBy` on creates/comments and CSV export scope.
 - [ ] **No delete** — No ticket delete endpoint or UI; **Cancelled** and **Closed** are terminal states.
 
 ## Validation
 
-- [ ] **Title required** — Title shorter than 3 characters or missing → **422** with field details.
+- [x] **Title required** — Title shorter than 3 characters or missing → **422** with field details.
 - [ ] **Title max length** — Title longer than 120 characters → **422**.
 - [ ] **Description max length** — Description longer than 5000 characters → **422**.
 - [ ] **Priority enum** — Only `Low`, `Medium`, `High`; invalid value → **422**.
@@ -42,10 +42,10 @@
 - [ ] **409 invalid transition** — Disallowed status change → **409** with current status, target, and allowed targets.
 - [ ] **409 edit on read-only ticket** — PATCH on **Resolved**, **Closed**, or **Cancelled** → **409**.
 - [ ] **409 comment on closed ticket** — POST comment on **Closed** or **Cancelled** → **409**.
-- [ ] **UI inline validation errors** — 422 responses show field-level errors on create/edit forms.
+- [x] **UI inline validation errors** — 422 responses show field-level errors on create/edit forms.
 - [ ] **UI banner for API failures** — 404, 409, and 500 display a visible banner with the server message.
 - [ ] **UI friendly 409 on transition** — Rejected status action shows the server's transition message.
-- [ ] **Disabled UI on terminal tickets** — Closed/Cancelled tickets disable edit/comment with an explanation.
+- [x] **Disabled UI on terminal tickets** — Closed/Cancelled tickets disable edit/comment with an explanation.
 
 ## Testing
 
