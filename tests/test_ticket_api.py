@@ -42,6 +42,20 @@ class TestTicketAPI:
         assert r.status_code == 409
         assert r.json()["error"]["code"] == "ticket_not_editable"
 
+    def test_update_resolved_ticket_rejected(self, client, open_ticket):
+        ticket_id = open_ticket["id"]
+        client.post(
+            f"/api/tickets/{ticket_id}/status",
+            json={"status": TicketStatus.IN_PROGRESS.value},
+        )
+        client.post(
+            f"/api/tickets/{ticket_id}/status",
+            json={"status": TicketStatus.RESOLVED.value},
+        )
+        r = client.patch(f"/api/tickets/{ticket_id}", json={"title": "New title"})
+        assert r.status_code == 409
+        assert r.json()["error"]["code"] == "ticket_not_editable"
+
     def test_comment_on_cancelled_rejected(self, client, users, open_ticket):
         ticket_id = open_ticket["id"]
         client.post(f"/api/tickets/{ticket_id}/status", json={"status": TicketStatus.CANCELLED.value})
@@ -73,3 +87,135 @@ class TestTicketAPI:
         assert "text/csv" in r.headers["content-type"]
         assert "Test ticket" in r.text
         assert "id,title,description" in r.text
+
+    def test_csv_export_header_only_when_no_tickets(self, client, users):
+        r = client.get("/api/tickets/export", params={"created_by": users["bob"].id})
+        assert r.status_code == 200
+        assert "text/csv" in r.headers["content-type"]
+        lines = r.text.strip().splitlines()
+        assert len(lines) == 1
+        assert lines[0].startswith("id,title,description")
+
+    def test_title_max_length(self, client, users):
+        r = client.post(
+            "/api/tickets",
+            json={
+                "title": "x" * 121,
+                "description": "desc",
+                "priority": "Medium",
+                "created_by": users["alice"].id,
+            },
+        )
+        assert r.status_code == 422
+        assert r.json()["error"]["code"] == "validation_error"
+
+    def test_description_max_length(self, client, users):
+        r = client.post(
+            "/api/tickets",
+            json={
+                "title": "Valid title",
+                "description": "x" * 5001,
+                "priority": "Medium",
+                "created_by": users["alice"].id,
+            },
+        )
+        assert r.status_code == 422
+        assert r.json()["error"]["code"] == "validation_error"
+
+    def test_invalid_priority(self, client, users):
+        r = client.post(
+            "/api/tickets",
+            json={
+                "title": "Valid title",
+                "description": "desc",
+                "priority": "Urgent",
+                "created_by": users["alice"].id,
+            },
+        )
+        assert r.status_code == 422
+        assert r.json()["error"]["code"] == "validation_error"
+
+    def test_invalid_status_value(self, client, open_ticket):
+        r = client.post(
+            f"/api/tickets/{open_ticket['id']}/status",
+            json={"status": "Done"},
+        )
+        assert r.status_code == 422
+        assert r.json()["error"]["code"] == "validation_error"
+
+    def test_comment_empty_message(self, client, users, open_ticket):
+        r = client.post(
+            f"/api/tickets/{open_ticket['id']}/comments",
+            json={"message": "", "created_by": users["alice"].id},
+        )
+        assert r.status_code == 422
+        assert r.json()["error"]["code"] == "validation_error"
+
+    def test_comment_whitespace_only_message(self, client, users, open_ticket):
+        r = client.post(
+            f"/api/tickets/{open_ticket['id']}/comments",
+            json={"message": "   ", "created_by": users["alice"].id},
+        )
+        assert r.status_code == 422
+        assert r.json()["error"]["code"] == "validation_error"
+
+    def test_comment_max_length(self, client, users, open_ticket):
+        r = client.post(
+            f"/api/tickets/{open_ticket['id']}/comments",
+            json={"message": "x" * 2001, "created_by": users["alice"].id},
+        )
+        assert r.status_code == 422
+        assert r.json()["error"]["code"] == "validation_error"
+
+    def test_assignee_must_exist(self, client, users):
+        r = client.post(
+            "/api/tickets",
+            json={
+                "title": "Valid title",
+                "description": "desc",
+                "priority": "Medium",
+                "created_by": users["alice"].id,
+                "assigned_to": 9999,
+            },
+        )
+        assert r.status_code == 404
+        assert r.json()["error"]["code"] == "not_found"
+
+    def test_ticket_must_exist(self, client):
+        r = client.get("/api/tickets/9999")
+        assert r.status_code == 404
+        assert r.json()["error"]["code"] == "not_found"
+
+    def test_ticket_comments_require_existing_ticket(self, client, users):
+        r = client.get("/api/tickets/9999/comments")
+        assert r.status_code == 404
+        assert r.json()["error"]["code"] == "not_found"
+
+    def test_search_filter_status_priority_and_query(self, client, users):
+        client.post(
+            "/api/tickets",
+            json={
+                "title": "FilterTargetTicket",
+                "description": "needle in haystack",
+                "priority": "High",
+                "created_by": users["alice"].id,
+            },
+        )
+        client.post(
+            "/api/tickets",
+            json={
+                "title": "Other ticket",
+                "description": "needle but low priority",
+                "priority": "Low",
+                "created_by": users["alice"].id,
+            },
+        )
+
+        r = client.get(
+            "/api/tickets",
+            params={"q": "needle", "status": "Open", "priority": "High"},
+        )
+        assert r.status_code == 200
+        titles = [item["title"] for item in r.json()["items"]]
+        assert "FilterTargetTicket" in titles
+        assert "Other ticket" not in titles

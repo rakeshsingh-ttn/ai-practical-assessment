@@ -4,13 +4,13 @@
 
 **Date:** 2026-07-19  
 **Command:** `pytest -v`  
-**Result:** **35 passed**, 0 failed
+**Result:** **49 passed**, 0 failed
 
 | Suite | File | Tests |
 |-------|------|-------|
 | State machine unit | `tests/test_state_machine_unit.py` | 16 |
-| State machine integration | `tests/test_state_machine_integration.py` | 7 |
-| Ticket API | `tests/test_ticket_api.py` | 7 |
+| State machine integration | `tests/test_state_machine_integration.py` | 8 |
+| Ticket API | `tests/test_ticket_api.py` | 19 |
 
 ---
 
@@ -135,11 +135,9 @@ All Core acceptance criteria are now verified end-to-end — API-level via the e
 
 From `test-strategy.md` — acceptable for Day 1; address on Day 2 if time permits:
 
-- Same-status no-op (Open → Open) — not yet automated
-- `status` / `priority` filter params — not yet in integration tests (manually verified in smoke test)
-- Whitespace-only comment message — not yet tested
 - **CSV special-char quoting** — scheduled Day 2 test (`test_csv_export_escapes_special_characters`); see `test-strategy.md`
 - Frontend e2e — manual UI smoke completed (see UI Smoke Test section above)
+- **UI error banners (404/409)** — `ErrorBanner` wired on all pages; 409 transition message not manually triggered (UI hides invalid actions by design)
 
 ---
 

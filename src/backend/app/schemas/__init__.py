@@ -68,6 +68,14 @@ class CommentCreate(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
     created_by: int
 
+    @field_validator("message")
+    @classmethod
+    def message_not_blank(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Message must not be empty or whitespace-only")
+        return stripped
+
 
 class CommentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
