@@ -27,6 +27,14 @@ class TestTicketAPI:
         )
         assert r.status_code == 404
 
+    def test_clear_assignee(self, client, open_ticket):
+        ticket_id = open_ticket["id"]
+        assert open_ticket["assigned_to"] is not None
+        r = client.patch(f"/api/tickets/{ticket_id}", json={"assigned_to": None})
+        assert r.status_code == 200
+        assert r.json()["assigned_to"] is None
+        assert r.json()["assignee"] is None
+
     def test_update_closed_ticket_rejected(self, client, open_ticket):
         ticket_id = open_ticket["id"]
         client.post(f"/api/tickets/{ticket_id}/status", json={"status": TicketStatus.CANCELLED.value})

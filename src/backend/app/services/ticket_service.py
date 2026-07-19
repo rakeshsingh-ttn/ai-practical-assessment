@@ -118,8 +118,9 @@ def update_ticket(db: Session, ticket_id: int, data: TicketUpdate) -> Ticket:
         ticket.description = data.description
     if data.priority is not None:
         ticket.priority = data.priority
-    if data.assigned_to is not None:
-        get_user_or_404(db, data.assigned_to)
+    if "assigned_to" in data.model_fields_set:
+        if data.assigned_to is not None:
+            get_user_or_404(db, data.assigned_to)
         ticket.assigned_to = data.assigned_to
 
     ticket.updated_at = datetime.now(timezone.utc)
