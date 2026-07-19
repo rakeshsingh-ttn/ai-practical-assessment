@@ -1,0 +1,21 @@
+---
+description: FastAPI backend conventions — layering, schemas, errors
+globs: src/backend/**
+alwaysApply: false
+---
+
+# Backend Conventions
+
+- Keep **routers thin** — delegate to services.
+- Put **business logic in services** (`src/backend/app/services/`).
+- Use **Pydantic v2 schemas** for every request and response body.
+- Use **SQLAlchemy 2.0 style** (`Mapped`, `mapped_column`, `select()`).
+- Return **all errors** in this shape:
+
+```json
+{"error": {"code": "...", "message": "...", "details": ...}}
+```
+
+- Map HTTP codes consistently: 404 not found, 422 validation, 409 business-rule conflicts.
+- Register exception handlers centrally; do not return ad-hoc error JSON from routers.
+- Validate required fields at the boundary (Pydantic) and enforce business rules in services.

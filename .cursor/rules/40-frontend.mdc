@@ -1,0 +1,17 @@
+---
+description: React + Vite frontend conventions — API client, errors, status UI
+globs: src/frontend/**
+alwaysApply: false
+---
+
+# Frontend Conventions
+
+- Use **React + Vite** with React Router for navigation.
+- Centralize all HTTP calls in **one API client module** (`src/frontend/src/api/client.js`).
+- **Never** call `fetch` directly inside components or pages.
+- Surface **all API errors** to the user:
+  - **422 validation errors** → inline field errors
+  - **Other errors** (404, 409, 500) → banner or toast with the server message
+- Status-change UI must show **only transitions valid** from the current ticket status (mirror backend `ALLOWED_TRANSITIONS`).
+- Use an **"acting as" user selector** (seeded users) — no auth.
+- Disable edit and comment forms with clear explanations on read-only statuses (Closed, Cancelled).

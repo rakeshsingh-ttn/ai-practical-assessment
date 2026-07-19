@@ -1,0 +1,28 @@
+---
+description: Ticket status state machine — single source of truth and enforcement
+alwaysApply: true
+---
+
+# Ticket Status State Machine
+
+This table is the **single source of truth** for allowed transitions:
+
+| From | Allowed To |
+|------|------------|
+| Open | In Progress, Cancelled |
+| In Progress | Resolved, Cancelled |
+| Resolved | Closed |
+| Closed | *(none)* |
+| Cancelled | *(none)* |
+
+## Enforcement Rules
+
+- **Every status change MUST go through** `src/backend/app/services/ticket_status.py` (`can_transition` / `transition`).
+- Expose status changes **only** via `POST /api/tickets/{id}/status`.
+- **Never** accept `status` on `PATCH /api/tickets/{id}` or any generic update endpoint.
+- **Invalid transitions** must raise `InvalidTransitionError` and return **HTTP 409** with the standard error shape.
+- Frontend status buttons must offer **only** transitions valid from the current status.
+
+## Status Values
+
+`Open`, `In Progress`, `Resolved`, `Closed`, `Cancelled` — fixed enums, no free-text status.

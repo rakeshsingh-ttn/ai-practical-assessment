@@ -1,0 +1,29 @@
+---
+description: Project context, stack, layout, and assessment expectations
+alwaysApply: true
+---
+
+# Project Context
+
+This is a **Support Ticket Management System** — an assessed take-home exercise.
+
+## Stack
+
+- **Backend:** Python, FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2, SQLite (swappable to Postgres)
+- **Frontend:** React, Vite
+- **Tests:** pytest + httpx TestClient
+
+## Repo Layout
+
+- `src/backend/` — FastAPI app (routers, services, models, schemas)
+- `src/frontend/` — React SPA
+- `tests/` — pytest integration and unit tests
+- `database/migrations/` — Alembic migrations
+- Root-level `.md` artifacts — requirements, design, API contract, etc.
+
+## Assessment Rules
+
+- All code is AI-generated but **must be reviewed and understood** by the candidate.
+- Follow existing patterns; do not introduce new frameworks without justification.
+- Prefer small, reviewable changes over broad refactors.
+- No auth, no user-management UI — users are seed data only.

@@ -1,0 +1,28 @@
+---
+description: pytest conventions and state-machine test coverage requirements
+globs: tests/**
+alwaysApply: false
+---
+
+# Testing Conventions
+
+- Use **pytest** for all tests.
+- Run **integration tests** against the real FastAPI app (`create_app()`) with a **temporary in-memory SQLite** database — no mocks for HTTP or DB layer.
+- Use `TestClient` and shared fixtures in `tests/conftest.py`.
+
+## State-Machine Test Suite (Mandatory)
+
+Must cover:
+
+- **Every valid transition** (Open→In Progress, Open→Cancelled, In Progress→Resolved, In Progress→Cancelled, Resolved→Closed)
+- **Representative invalid transitions**, including:
+  - Skipping states (e.g. Open→Resolved, Open→Closed)
+  - Backward transitions (e.g. In Progress→Open)
+  - Transitions **out of Closed** (all targets → 409)
+  - Transitions **out of Cancelled** (all targets → 409)
+- Confirm status **cannot** be changed via the generic PATCH endpoint.
+
+## General
+
+- Assert on HTTP status codes **and** error `code` in the response body.
+- Add tests when behavior changes; do not delete coverage to make tests pass.
