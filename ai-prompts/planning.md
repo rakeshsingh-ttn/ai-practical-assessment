@@ -584,3 +584,53 @@ Commit: docs: requirement analysis. Export chat → ai-prompts/planning.md.
 
 Committed `requirements-analysis.md` and appended this Chat 2 session to `ai-prompts/planning.md`.
 
+
+---
+
+# Chat 3 — Acceptance criteria
+_Exported on 7/19/2026 at 21:19:00 GMT+5:30 from Cursor (3.12.17)_
+
+---
+
+**User**
+
+Using @requirements-analysis.md, write acceptance-criteria.md as checkable
+boxes I will tick during development. Use this template:
+
+# Acceptance Criteria
+## Core        (the mandatory list from the assessment, as testable statements)
+## Validation  (specific field rules: required, lengths, enum membership,
+                assignee must exist, etc.)
+## Error Handling (consistent error shape, correct HTTP codes: 422 validation,
+                404 not found, 409 invalid transition / comment on closed ticket,
+                meaningful UI error states)
+## Testing     (state-machine integration tests: every valid transition
+                succeeds, invalid ones rejected incl. from terminal states;
+                validation tests; smoke tests)
+## Documentation (README runs from scratch, schema/migrations + seed
+                documented, .env.example present, no secrets committed)
+
+Core must include verbatim: create via UI, view all tickets from DB, detail
+view, update fields and reassign, add comments, status only via valid
+transitions, data survives restart, backend validation prevents invalid
+records, CSV export of self-created tickets, state-machine integration tests
+pass, no secrets in repo.
+
+---
+
+**Cursor**
+
+Wrote `acceptance-criteria.md` with checkable boxes across Core (14), Validation (14), Error Handling (10), Testing (19), and Documentation (6). All 11 mandatory verbatim core items included; edge cases from requirements analysis reflected in testing criteria (reopen rejected, Resolved → Cancelled, whitespace comments, CSV creator-only scope, clear assignee).
+
+---
+
+**User**
+
+commit and export
+
+---
+
+**Cursor**
+
+Committed `acceptance-criteria.md` and appended this Chat 3 session to `ai-prompts/planning.md`.
+
