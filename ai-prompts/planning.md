@@ -481,3 +481,106 @@ Not the parent `TTN` folder — rules and paths work better from the project roo
 
 If you tell me what you’re trying to do — e.g. “start Chat 2 in a fresh window” or “continue on another machine” — I can give you the exact steps and a copy-paste handoff block.
 
+---
+
+# Chat 2 — Requirement analysis (continued session)
+_Exported on 7/19/2026 at 21:17:00 GMT+5:30 from Cursor (3.12.17)_
+
+---
+
+**User**
+
+@ai-prompts/planning.md this is our context
+
+---
+
+**User**
+
+Act as a senior full-stack engineer helping me analyze requirements before any
+code is written.
+
+[SPEC]
+
+Before producing anything, ask me the clarifying questions a good engineer
+would ask a product owner about this spec — requirement gaps, edge cases,
+scope boundaries, and anything ambiguous. Number the questions. Do not write
+the analysis yet.
+
+---
+
+**Cursor**
+
+Asked 22 clarifying questions covering: acting-as user, CSV scope, enums, edit/comment rules, assignee, search/filter, delete vs cancel, pagination, timestamps, concurrency, validation, UI errors, and testing bar.
+
+---
+
+**User**
+
+Here are my answers as the product owner:
+1. Since there is no authentication, the UI has an "acting as" user selector
+   (a dropdown of seeded users). createdBy is set from that selection.
+   "Self-created tickets" for CSV export means tickets where createdBy equals
+   the currently selected user.
+2. Priority values: Low, Medium, High. Status values: Open, In Progress,
+   Resolved, Closed, Cancelled. Both are fixed enums.
+3. Field editing (title/description/priority/assignee) is allowed only while a
+   ticket is Open or In Progress. Closed and Cancelled tickets are read-only.
+4. Comments are allowed on Open, In Progress and Resolved tickets; rejected
+   (409) on Closed and Cancelled tickets.
+5. Assignee is optional at creation; it must reference an existing seeded user.
+6. Search scope: case-insensitive substring match on title and description,
+   plus filter by status and priority. That covers the Core search/filter item.
+7. No delete operation — Cancelled is the terminal "not doing this" state.
+8. Pagination: simple limit/offset with sensible defaults; not a priority.
+9. Timestamps are server-managed (createdAt on insert, updatedAt on any change).
+10. Single-user concurrency is fine; no optimistic locking needed (note it as a
+    known limitation).
+
+Now write requirements-analysis.md using exactly this template:
+# Requirement Analysis
+## Selected Project Option
+## My Understanding (in your own words — write this in plain first person)
+## Functional Requirements (numbered FR-1, FR-2, ...)
+## Non-Functional Requirements (numbered NFR-1, ...)
+## Assumptions (numbered, from my answers above)
+## Clarifications (the questions you asked, with my answers)
+## Edge Cases (especially around the state machine and validation)
+
+---
+
+**Cursor**
+
+Wrote `requirements-analysis.md` with FR-1–FR-13, NFR-1–NFR-7, 10 assumptions, clarifications Q&A table, and initial edge cases.
+
+---
+
+**User**
+
+Review your own analysis critically. What edge cases are missing around the
+state machine, comment rules, CSV export, and concurrent edits? Add the
+genuinely useful ones to the Edge Cases section — don't pad it.
+
+---
+
+**Cursor**
+
+Challenge pass complete. Added edge cases:
+
+- **State machine:** reopen attempts, Resolved → Cancelled, unknown status → 422
+- **Comments:** closing preserves thread, Resolved → Closed boundary, `created_by` 404, whitespace-only → 422
+- **CSV:** creator-only scope, all statuses included, missing `created_by` → 422
+- **Concurrency:** stale PATCH after status change → 409; status race last-write-wins
+- **Validation:** clearing assignee via `assigned_to: null`
+
+---
+
+**User**
+
+Commit: docs: requirement analysis. Export chat → ai-prompts/planning.md.
+
+---
+
+**Cursor**
+
+Committed `requirements-analysis.md` and appended this Chat 2 session to `ai-prompts/planning.md`.
+
