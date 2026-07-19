@@ -131,13 +131,47 @@ All Core acceptance criteria are now verified end-to-end — API-level via the e
 
 ---
 
+## README dry run (clean copy)
+
+**Date:** 2026-07-19  
+**Method:** Fresh rsync copy to `/tmp/ai-practical-assessment-dryrun` (excluded `venv/`, `node_modules/`, `*.db`, `.env`, `.git`); followed `README.md` steps  
+**Result:** **PASS**
+
+| Step | Result | Evidence |
+|------|--------|----------|
+| `python3 -m venv venv` + `pip install -r requirements.txt` | PASS | Dependencies installed |
+| `cp .env.example .env` | PASS | Default `DATABASE_URL` |
+| `alembic upgrade head` | PASS | Migration `001` applied |
+| `python -m src.backend.seed` | PASS | "Seed data inserted successfully." |
+| `pytest -q` | PASS | **49 passed**, 0 failed |
+| `uvicorn ... --port 8001` + health check | PASS | `{"status":"ok"}` (used 8001 — port 8000 occupied by dev session) |
+| `cd src/frontend && npm install && npm run build` | PASS | Vite production build succeeded |
+
+**Note:** `npm run dev` not started in dry-run copy (port 5173 already in use by active dev session); production build confirms frontend compiles and bundles.
+
+---
+
+## UI error-banner spot-check (Playwright)
+
+**Date:** 2026-07-19  
+**Environment:** Existing dev servers (`:5173` → `:8000`)  
+**Tool:** Playwright (headless Chromium)  
+**Result:** **3/3 checks passed**, 0 failures
+
+| Check | Steps performed | Result |
+|-------|-----------------|--------|
+| 404 banner | Navigated to `/tickets/99999` | PASS — `.banner-error` shows `Ticket not found` |
+| 409 transition banner | Opened `/tickets/1`, intercepted `POST /api/tickets/1/status` with 409 + server transition message, clicked "Move to In Progress" | PASS — banner shows full server message verbatim |
+| 500 banner | Intercepted `GET /api/tickets` with 500 on list page reload | PASS — banner shows simulated server failure message |
+
+---
+
 ## Known gaps (not blocking)
 
 From `test-strategy.md` — acceptable for Day 1; address on Day 2 if time permits:
 
 - **CSV special-char quoting** — scheduled Day 2 test (`test_csv_export_escapes_special_characters`); see `test-strategy.md`
 - Frontend e2e — manual UI smoke completed (see UI Smoke Test section above)
-- **UI error banners (404/409)** — `ErrorBanner` wired on all pages; 409 transition message not manually triggered (UI hides invalid actions by design)
 
 ---
 

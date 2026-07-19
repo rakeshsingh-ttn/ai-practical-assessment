@@ -43,8 +43,8 @@
 - [x] **409 edit on read-only ticket** — PATCH on **Resolved**, **Closed**, or **Cancelled** → **409**.
 - [x] **409 comment on closed ticket** — POST comment on **Closed** or **Cancelled** → **409**.
 - [x] **UI inline validation errors** — 422 responses show field-level errors on create/edit forms.
-- [ ] **UI banner for API failures** — 404, 409, and 500 display a visible banner with the server message.
-- [ ] **UI friendly 409 on transition** — Rejected status action shows the server's transition message.
+- [x] **UI banner for API failures** — 404, 409, and 500 display a visible banner with the server message.
+- [x] **UI friendly 409 on transition** — Rejected status action shows the server's transition message.
 - [x] **Disabled UI on terminal tickets** — Closed/Cancelled tickets disable edit/comment with an explanation.
 
 ## Testing
@@ -71,7 +71,7 @@
 
 ## Documentation
 
-- [ ] **README runs from scratch** — Clone → venv → pip install → migrate → seed → uvicorn → npm install → npm run dev → working app.
+- [x] **README runs from scratch** — Clone → venv → pip install → migrate → seed → uvicorn → npm install → npm run dev → working app.
 - [x] **Schema/migrations + seed documented** — `database/setup-notes.md` covers DB choice, migrations, seed, and reset.
 - [x] **`.env.example` present** — Committed with variable names (e.g. `DATABASE_URL`); no real values.
 - [x] **No secrets committed** — `.gitignore` excludes `.env`, `*.db`, `venv/`, `node_modules/`.
