@@ -634,3 +634,47 @@ commit and export
 
 Committed `acceptance-criteria.md` and appended this Chat 3 session to `ai-prompts/planning.md`.
 
+
+---
+
+# Chat 6 — Implementation plan
+_Exported on 7/19/2026 at 21:23:00 GMT+5:30 from Cursor (3.12.17)_
+
+---
+
+**User**
+
+Using @acceptance-criteria.md and @test-strategy.md, write implementation-plan.md.
+I have today (rest of Day 1), Day 2, and Day 3 (submission day, keep a buffer).
+
+# Implementation Plan
+## Overview
+## Task Breakdown (Day 1 remaining, Day 2, Day 3)
+## Milestones (M1–M5)
+## AI Usage Plan
+## Risks
+## Mitigation
+
+---
+
+**Cursor**
+
+Wrote `implementation-plan.md` with:
+- 3-day overview acknowledging existing backend/frontend/tests
+- Day 1 remaining: artifacts + backend Swagger smoke (~7h)
+- Day 2: tests-first, frontend validation, acceptance criteria pass (~9h)
+- Day 3: code review, README dry run, artifacts, 2h buffer (~9.75h)
+- Milestones M1–M5, AI usage plan mapped to ai-prompts/ folder, risks and mitigations
+
+---
+
+**User**
+
+yes please (commit and export)
+
+---
+
+**Cursor**
+
+Committed `implementation-plan.md` and appended this Chat 6 session to `ai-prompts/planning.md`.
+
