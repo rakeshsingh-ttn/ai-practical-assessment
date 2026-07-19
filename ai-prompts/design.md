@@ -86,3 +86,44 @@ commit and export
 **Cursor**
 
 Committed `data-model.md`, `api-contract.md`, and appended this Chat 4 session to `ai-prompts/design.md`.
+
+---
+
+# Chat 5 — Design notes, UI flow, test strategy
+_Exported on 7/19/2026 at 21:22:00 GMT+5:30 from Cursor (3.12.17)_
+
+---
+
+**User**
+
+Using @requirements-analysis.md @api-contract.md @data-model.md, write three
+artifacts:
+
+1. design-notes.md — Architecture Overview, Frontend Design, Backend Design,
+   Database Design, Validation Strategy, Error Handling Strategy, Testing Strategy Link
+2. ui-flow.md — Ticket List, Ticket Detail, Create Ticket flows with error states
+3. test-strategy.md — Test Scope, Unit Tests, API/Integration Tests, Edge Case Tests,
+   Tests Not Covered
+
+---
+
+**Cursor**
+
+Wrote all three artifacts:
+
+- **design-notes.md** — React → FastAPI → SQLite architecture, layering, state machine isolation, validation/error handling strategies, link to test-strategy.md
+- **ui-flow.md** — Three screens with ASCII layouts, user flows, status button rules, edit/comment availability by status, error state summary (422 inline vs 409/404 banner)
+- **test-strategy.md** — Unit/integration scope mapped to existing tests, edge case coverage matrix from requirements-analysis.md, gaps noted, manual smoke checklist
+
+---
+
+**User**
+
+yes please (commit and export)
+
+---
+
+**Cursor**
+
+Committed `design-notes.md`, `ui-flow.md`, `test-strategy.md`, and appended this Chat 5 session to `ai-prompts/design.md`.
+
