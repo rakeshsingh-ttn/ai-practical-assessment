@@ -41,3 +41,13 @@ Backend findings from `code-review-notes.md`, applied one at a time with test ev
 | **Finding** | `%` and `_` in search query were treated as SQL wildcards (`GET ?q=100%` matched unintended rows). |
 | **Change** | Added `_escape_like()` and `escape="\\"` on `ilike` filters. Added `test_search_treats_percent_as_literal`. |
 | **Test evidence** | `venv/bin/python -m pytest -q` → **52 passed** |
+
+---
+
+## Fix 5 — TOCTOU on edit/comment/status (Should-fix)
+
+| | |
+|---|---|
+| **Finding** | Concurrent PATCH and status change could race without row-level locking. |
+| **Change** | Added `_get_ticket_for_update()` with `with_for_update()` for `update_ticket`, `change_ticket_status`, and `create_comment`. |
+| **Test evidence** | `venv/bin/python -m pytest -q` → **52 passed** |

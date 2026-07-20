@@ -49,6 +49,18 @@ def get_ticket_or_404(db: Session, ticket_id: int) -> Ticket:
     return ticket
 
 
+def _get_ticket_for_update(db: Session, ticket_id: int) -> Ticket:
+    ticket = db.execute(
+        select(Ticket)
+        .options(joinedload(Ticket.creator), joinedload(Ticket.assignee))
+        .where(Ticket.id == ticket_id)
+        .with_for_update()
+    ).scalar_one_or_none()
+    if not ticket:
+        raise NotFoundError("Ticket", ticket_id)
+    return ticket
+
+
 def list_tickets(
     db: Session,
     *,
@@ -125,7 +137,7 @@ def create_ticket(db: Session, data: TicketCreate) -> Ticket:
 
 
 def update_ticket(db: Session, ticket_id: int, data: TicketUpdate) -> Ticket:
-    ticket = get_ticket_or_404(db, ticket_id)
+    ticket = _get_ticket_for_update(db, ticket_id)
 
     if ticket.status not in EDITABLE_STATUSES:
         raise TicketNotEditableError(ticket.status.value)
@@ -147,7 +159,7 @@ def update_ticket(db: Session, ticket_id: int, data: TicketUpdate) -> Ticket:
 
 
 def change_ticket_status(db: Session, ticket_id: int, target: TicketStatus) -> Ticket:
-    ticket = get_ticket_or_404(db, ticket_id)
+    ticket = _get_ticket_for_update(db, ticket_id)
     transition(ticket, target)
     ticket.updated_at = datetime.now(timezone.utc)
     db.commit()
@@ -167,7 +179,7 @@ def list_comments(db: Session, ticket_id: int) -> list[Comment]:
 
 
 def create_comment(db: Session, ticket_id: int, data: CommentCreate) -> Comment:
-    ticket = get_ticket_or_404(db, ticket_id)
+    ticket = _get_ticket_for_update(db, ticket_id)
     if ticket.status not in COMMENT_ALLOWED_STATUSES:
         raise CommentNotAllowedError(ticket.status.value)
 
