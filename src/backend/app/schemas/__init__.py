@@ -21,12 +21,30 @@ class TicketCreate(BaseModel):
     created_by: int
     assigned_to: int | None = None
 
+    @field_validator("title")
+    @classmethod
+    def title_not_blank(cls, value: str) -> str:
+        stripped = value.strip()
+        if len(stripped) < 3:
+            raise ValueError("String should have at least 3 characters")
+        return stripped
+
 
 class TicketUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=3, max_length=120)
     description: str | None = Field(default=None, max_length=5000)
     priority: TicketPriority | None = None
     assigned_to: int | None = None
+
+    @field_validator("title")
+    @classmethod
+    def title_not_blank(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        stripped = value.strip()
+        if len(stripped) < 3:
+            raise ValueError("String should have at least 3 characters")
+        return stripped
 
 
 class TicketStatusUpdate(BaseModel):

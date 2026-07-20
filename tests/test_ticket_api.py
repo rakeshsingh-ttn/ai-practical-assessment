@@ -15,6 +15,19 @@ class TestTicketAPI:
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
+    def test_whitespace_only_title_rejected(self, client, users):
+        r = client.post(
+            "/api/tickets",
+            json={
+                "title": "   ",
+                "description": "desc",
+                "priority": "Medium",
+                "created_by": users["alice"].id,
+            },
+        )
+        assert r.status_code == 422
+        assert r.json()["error"]["code"] == "validation_error"
+
     def test_create_ticket_invalid_user(self, client):
         r = client.post(
             "/api/tickets",
