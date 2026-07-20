@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 
 from src.backend.app.exceptions import AppError
 
@@ -34,6 +35,15 @@ def register_error_handlers(app: FastAPI) -> None:
             "validation_error",
             "Request validation failed",
             jsonable_encoder(exc.errors()),
+        )
+
+    @app.exception_handler(IntegrityError)
+    async def integrity_error_handler(_request: Request, exc: IntegrityError):
+        return _error_response(
+            409,
+            "integrity_error",
+            "Database constraint violation",
+            {"detail": str(exc.orig) if exc.orig else None},
         )
 
     @app.exception_handler(Exception)
