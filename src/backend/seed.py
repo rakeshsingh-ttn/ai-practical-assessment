@@ -2,7 +2,7 @@
 
 from sqlalchemy import select
 
-from src.backend.app.database import SessionLocal, engine
+from src.backend.app.database import SessionLocal
 from src.backend.app.models.entities import (
     Comment,
     Ticket,
@@ -159,7 +159,4 @@ def seed() -> None:
 
 
 if __name__ == "__main__":
-    from src.backend.app.database import Base
-
-    Base.metadata.create_all(bind=engine)
     seed()
