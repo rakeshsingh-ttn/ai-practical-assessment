@@ -67,11 +67,11 @@ def get_user_or_404(db: Session, user_id: int) -> User:
 
 
 def get_ticket_or_404(db: Session, ticket_id: int) -> Ticket:
-    ticket = db.execute(
-        select(Ticket)
-        .options(joinedload(Ticket.creator), joinedload(Ticket.assignee))
-        .where(Ticket.id == ticket_id)
-    ).scalar_one_or_none()
+    ticket = db.get(
+        Ticket,
+        ticket_id,
+        options=[joinedload(Ticket.creator), joinedload(Ticket.assignee)],
+    )
     if not ticket:
         raise NotFoundError("Ticket", ticket_id)
     return ticket
