@@ -219,3 +219,38 @@ class TestTicketAPI:
         titles = [item["title"] for item in r.json()["items"]]
         assert "FilterTargetTicket" in titles
         assert "Other ticket" not in titles
+
+    def test_internal_error_shape(self, db_session, monkeypatch):
+        from fastapi.testclient import TestClient
+
+        from src.backend.app.database import get_db
+        from src.backend.app.main import create_app
+        from src.backend.app.services import ticket_service
+
+        app = create_app()
+
+        def override_get_db():
+            try:
+                yield db_session
+            finally:
+                pass
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        def boom(*_args, **_kwargs):
+            raise RuntimeError("simulated failure")
+
+        monkeypatch.setattr(ticket_service, "list_tickets", boom)
+
+        with TestClient(app, raise_server_exceptions=False) as test_client:
+            r = test_client.get("/api/tickets")
+
+        assert r.status_code == 500
+        body = r.json()
+        assert body == {
+            "error": {
+                "code": "internal_error",
+                "message": "Internal server error",
+                "details": None,
+            }
+        }
