@@ -6,7 +6,7 @@ Rakesh Singh
 
 ## Role
 
-Software Engineer *(please confirm your official role/title for the submission form)*
+Software Engineer
 
 ## Stack
 
@@ -21,18 +21,18 @@ Software Engineer *(please confirm your official role/title for the submission f
 
 ## Project Option
 
-**Support Ticket Management System** (backend-heavy option) — internal ticket app with enforced lifecycle, comments, search/filter, and CSV export. No auth; users are seed data with an acting-as selector in the UI.
+**Support Ticket Management System** (backend-heavy option) — internal ticket app with enforced lifecycle, comments, search/filter, JWT authentication (stretch), and token-scoped CSV export. Seeded users log in via the UI; role rules gate status changes and Requester edit scope.
 
 ## Dates
 
 | | Date |
 |---|------|
 | **Start** | 2026-07-19 |
-| **Submission** | 2026-07-20 *(please confirm)* |
+| **Submission** | 2026-07-20 |
 
 ## Project Summary
 
-I built a small support ticket system where seeded users create and progress tickets through a strict state machine (Open → In Progress → Resolved → Closed, with Cancelled as an alternate exit from Open/In Progress). The backend owns all business rules — status changes go only through `POST /api/tickets/{id}/status`, edits are allowed only in Open/In Progress, and comments are blocked on Closed/Cancelled. The React UI covers list/search/filter, create, detail (edit, status actions, comments), and CSV export scoped to the acting-as user. I grounded implementation in written artifacts first (`requirements-analysis.md`, `api-contract.md`, `acceptance-criteria.md`), then hardened with pytest, manual Swagger/UI smoke tests, and a backend code review pass that produced 19 targeted fix commits.
+I built a small support ticket system where seeded users log in and create/progress tickets through a strict state machine (Open → In Progress → Resolved → Closed, with Cancelled as an alternate exit from Open/In Progress). The backend owns all business rules — status changes go only through `POST /api/tickets/{id}/status`, edits are allowed only in Open/In Progress, and comments are blocked on Closed/Cancelled. JWT auth (stretch) protects mutations; `created_by` is always derived from the token. The React UI covers login, list/search/filter, create, detail (edit, role-aware status actions, comments), and CSV export scoped to the logged-in user. I grounded implementation in written artifacts first (`requirements-analysis.md`, `api-contract.md`, `acceptance-criteria.md`), then hardened with pytest (91 tests), post-JWT API smoke, and a backend code review pass that produced 19 targeted fix commits.
 
 ## Tools Used
 
@@ -53,8 +53,8 @@ Clone the repo and follow **`README.md`** at the project root:
 2. `cp .env.example .env` (defaults work for local SQLite)
 3. `alembic upgrade head` → `python -m src.backend.seed`
 4. `uvicorn src.backend.app.main:app --reload --port 8000`
-5. `cd src/frontend && npm install && npm run dev` → http://localhost:5173
+5. `cd src/frontend && npm install && npm run dev` → http://localhost:5173 (login with seeded email + `Password123`)
 
-Run tests: `pytest -v` (or `venv/bin/python -m pytest -q`) from the project root with the venv active.
+Run tests: `pytest -v` (or `venv/bin/python -m pytest -q`) from the project root with the venv active — **91 tests** as of submission.
 
 More detail on schema, migrations, and reset: `database/setup-notes.md`.
