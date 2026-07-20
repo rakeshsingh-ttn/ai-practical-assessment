@@ -1,34 +1,54 @@
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from './context/UserContext';
 import TicketListPage from './pages/TicketListPage';
 import TicketDetailPage from './pages/TicketDetailPage';
 import CreateTicketPage from './pages/CreateTicketPage';
+import LoginPage from './pages/LoginPage';
 
 function Header() {
-  const { users, currentUserId, setCurrentUserId } = useUser();
+  const { currentUser, logout } = useUser();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <header className="header">
       <div className="header-inner">
         <Link to="/" className="logo">TicketDesk</Link>
-        <div className="acting-as">
-          <label htmlFor="acting-as-select">Acting as</label>
-          <select
-            id="acting-as-select"
-            value={currentUserId || ''}
-            onChange={(e) => setCurrentUserId(Number(e.target.value))}
-          >
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-            ))}
-          </select>
-        </div>
+        {currentUser && (
+          <div className="user-menu">
+            <span className="user-label">
+              {currentUser.name} <span className="muted">({currentUser.role})</span>
+            </span>
+            <button type="button" className="btn btn-secondary" onClick={handleLogout}>
+              Log out
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );
 }
 
-export default function App() {
+function ProtectedLayout() {
+  const { isAuthenticated, loading } = useUser();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="main">
+        <p className="muted">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
   return (
     <>
       <Header />
@@ -40,5 +60,14 @@ export default function App() {
         </Routes>
       </main>
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/*" element={<ProtectedLayout />} />
+    </Routes>
   );
 }

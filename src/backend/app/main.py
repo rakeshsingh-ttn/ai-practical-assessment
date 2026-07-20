@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.backend.app.config import settings
 from src.backend.app.error_handlers import register_error_handlers
-from src.backend.app.routers import health, tickets, users
+from src.backend.app.routers import auth, health, tickets, users
 
 
 def create_app() -> FastAPI:
@@ -20,6 +20,7 @@ def create_app() -> FastAPI:
     register_error_handlers(app)
 
     app.include_router(health.router, prefix="/api")
+    app.include_router(auth.router, prefix="/api")
     app.include_router(users.router, prefix="/api")
     app.include_router(tickets.router, prefix="/api")
 

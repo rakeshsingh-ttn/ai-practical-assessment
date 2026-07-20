@@ -29,6 +29,10 @@ def register_error_handlers(app: FastAPI) -> None:
             status_code = 409
         elif exc.code == "not_found":
             status_code = 404
+        elif exc.code == "unauthorized":
+            status_code = 401
+        elif exc.code == "forbidden":
+            status_code = 403
         else:
             status_code = 500
             exc = AppError("internal_error", exc.message, exc.details)

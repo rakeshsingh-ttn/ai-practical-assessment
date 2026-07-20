@@ -1,3 +1,5 @@
+export const STATUS_CHANGE_ROLES = ['Admin', 'Agent', 'Manager'];
+
 export const ALLOWED_TRANSITIONS = {
   Open: ['In Progress', 'Cancelled'],
   'In Progress': ['Resolved', 'Cancelled'],

@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
+from src.backend.app.auth.dependencies import get_current_user
 from src.backend.app.database import get_db
-from src.backend.app.models.entities import TicketPriority, TicketStatus
+from src.backend.app.models.entities import TicketPriority, TicketStatus, User
 from src.backend.app.schemas import (
     CommentCreate,
     CommentOut,
@@ -42,18 +43,25 @@ def list_tickets(
 
 
 @router.post("", response_model=TicketOut, status_code=201)
-def create_ticket(data: TicketCreate, db: Session = Depends(get_db)):
-    return ticket_service.create_ticket(db, data)
+def create_ticket(
+    data: TicketCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ticket_service.create_ticket(db, data, current_user)
 
 
 @router.get("/export")
-def export_tickets(created_by: int, db: Session = Depends(get_db)):
-    csv_content = ticket_service.export_tickets_csv(db, created_by)
+def export_tickets(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    csv_content = ticket_service.export_tickets_csv(db, current_user.id)
     return Response(
         content=csv_content,
         media_type="text/csv; charset=utf-8",
         headers={
-            "Content-Disposition": f'attachment; filename="tickets_user_{created_by}.csv"'
+            "Content-Disposition": f'attachment; filename="tickets_user_{current_user.id}.csv"'
         },
     )
 
@@ -64,13 +72,23 @@ def get_ticket(ticket_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{ticket_id}", response_model=TicketOut)
-def update_ticket(ticket_id: int, data: TicketUpdate, db: Session = Depends(get_db)):
-    return ticket_service.update_ticket(db, ticket_id, data)
+def update_ticket(
+    ticket_id: int,
+    data: TicketUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ticket_service.update_ticket(db, ticket_id, data, current_user)
 
 
 @router.post("/{ticket_id}/status", response_model=TicketOut)
-def change_status(ticket_id: int, data: TicketStatusUpdate, db: Session = Depends(get_db)):
-    return ticket_service.change_ticket_status(db, ticket_id, data.status)
+def change_status(
+    ticket_id: int,
+    data: TicketStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ticket_service.change_ticket_status(db, ticket_id, data.status, current_user)
 
 
 @router.get("/{ticket_id}/comments", response_model=list[CommentOut])
@@ -79,5 +97,10 @@ def list_comments(ticket_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{ticket_id}/comments", response_model=CommentOut, status_code=201)
-def create_comment(ticket_id: int, data: CommentCreate, db: Session = Depends(get_db)):
-    return ticket_service.create_comment(db, ticket_id, data)
+def create_comment(
+    ticket_id: int,
+    data: CommentCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ticket_service.create_comment(db, ticket_id, data, current_user)

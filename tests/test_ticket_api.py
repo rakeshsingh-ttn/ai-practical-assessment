@@ -5,84 +5,94 @@ from src.backend.app.models.entities import TicketStatus
 
 
 class TestTicketAPI:
-    def test_create_ticket_validation(self, client, users):
-        r = client.post(
+    def test_create_ticket_validation(self, authed, users):
+        r = authed.post(
             "/api/tickets",
             json={
                 "title": "ab",
                 "description": "too short title",
                 "priority": "Medium",
-                "created_by": users["alice"].id,
             },
         )
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
-    def test_whitespace_only_title_rejected(self, client, users):
-        r = client.post(
+    def test_whitespace_only_title_rejected(self, authed, users):
+        r = authed.post(
             "/api/tickets",
             json={
                 "title": "   ",
                 "description": "desc",
                 "priority": "Medium",
-                "created_by": users["alice"].id,
             },
         )
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
-    def test_create_rejects_extra_fields(self, client, users):
-        r = client.post(
+    def test_create_rejects_extra_fields(self, authed, users):
+        r = authed.post(
             "/api/tickets",
             json={
                 "title": "Valid title",
                 "description": "desc",
                 "priority": "Medium",
-                "created_by": users["alice"].id,
                 "status": "Open",
             },
         )
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
-    def test_patch_rejects_status_field(self, client, open_ticket):
-        r = client.patch(
+    def test_patch_rejects_status_field(self, authed, open_ticket):
+        r = authed.patch(
             f"/api/tickets/{open_ticket['id']}",
             json={"status": TicketStatus.CLOSED.value},
         )
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
-    def test_patch_title_only_leaves_status_unchanged(self, client, open_ticket):
+    def test_patch_title_only_leaves_status_unchanged(self, authed, open_ticket):
         ticket_id = open_ticket["id"]
-        r = client.patch(f"/api/tickets/{ticket_id}", json={"title": "Renamed ticket"})
+        r = authed.patch(f"/api/tickets/{ticket_id}", json={"title": "Renamed ticket"})
         assert r.status_code == 200
         assert r.json()["title"] == "Renamed ticket"
         assert r.json()["status"] == TicketStatus.OPEN.value
 
-    def test_create_ticket_invalid_user(self, client):
-        r = client.post(
+    def test_create_rejects_created_by_field(self, authed, users):
+        r = authed.post(
             "/api/tickets",
             json={
                 "title": "Valid title",
                 "description": "desc",
                 "priority": "Medium",
-                "created_by": 9999,
+                "created_by": users["alice"].id,
             },
         )
-        assert r.status_code == 404
+        assert r.status_code == 422
+        assert r.json()["error"]["code"] == "validation_error"
 
-    def test_clear_assignee(self, client, open_ticket):
+    def test_create_sets_created_by_from_authenticated_user(self, authed, users):
+        r = authed.post(
+            "/api/tickets",
+            json={
+                "title": "Valid title",
+                "description": "desc",
+                "priority": "Medium",
+            },
+        )
+        assert r.status_code == 201
+        assert r.json()["created_by"] == users["alice"].id
+
+    def test_clear_assignee(self, authed, open_ticket):
         ticket_id = open_ticket["id"]
         assert open_ticket["assigned_to"] is not None
-        r = client.patch(f"/api/tickets/{ticket_id}", json={"assigned_to": None})
+        r = authed.patch(f"/api/tickets/{ticket_id}", json={"assigned_to": None})
         assert r.status_code == 200
         assert r.json()["assigned_to"] is None
         assert r.json()["assignee"] is None
 
-    def test_api_timestamps_use_second_precision(self, client, open_ticket):
+    def test_api_timestamps_use_second_precision(self, authed, open_ticket):
         ticket_id = open_ticket["id"]
-        r = client.patch(
+        r = authed.patch(
             f"/api/tickets/{ticket_id}",
             json={"title": "Timestamp precision check"},
         )
@@ -91,45 +101,44 @@ class TestTicketAPI:
         for field in ("created_at", "updated_at"):
             assert "." not in body[field], f"{field} should not include fractional seconds"
 
-    def test_update_closed_ticket_rejected(self, client, open_ticket):
+    def test_update_closed_ticket_rejected(self, authed, open_ticket):
         ticket_id = open_ticket["id"]
-        client.post(f"/api/tickets/{ticket_id}/status", json={"status": TicketStatus.CANCELLED.value})
-        r = client.patch(f"/api/tickets/{ticket_id}", json={"title": "New title"})
+        authed.post(f"/api/tickets/{ticket_id}/status", json={"status": TicketStatus.CANCELLED.value})
+        r = authed.patch(f"/api/tickets/{ticket_id}", json={"title": "New title"})
         assert r.status_code == 409
         assert r.json()["error"]["code"] == "ticket_not_editable"
 
-    def test_update_resolved_ticket_rejected(self, client, open_ticket):
+    def test_update_resolved_ticket_rejected(self, authed, open_ticket):
         ticket_id = open_ticket["id"]
-        client.post(
+        authed.post(
             f"/api/tickets/{ticket_id}/status",
             json={"status": TicketStatus.IN_PROGRESS.value},
         )
-        client.post(
+        authed.post(
             f"/api/tickets/{ticket_id}/status",
             json={"status": TicketStatus.RESOLVED.value},
         )
-        r = client.patch(f"/api/tickets/{ticket_id}", json={"title": "New title"})
+        r = authed.patch(f"/api/tickets/{ticket_id}", json={"title": "New title"})
         assert r.status_code == 409
         assert r.json()["error"]["code"] == "ticket_not_editable"
 
-    def test_comment_on_cancelled_rejected(self, client, users, open_ticket):
+    def test_comment_on_cancelled_rejected(self, authed, users, open_ticket):
         ticket_id = open_ticket["id"]
-        client.post(f"/api/tickets/{ticket_id}/status", json={"status": TicketStatus.CANCELLED.value})
-        r = client.post(
+        authed.post(f"/api/tickets/{ticket_id}/status", json={"status": TicketStatus.CANCELLED.value})
+        r = authed.post(
             f"/api/tickets/{ticket_id}/comments",
-            json={"message": "Should fail", "created_by": users["alice"].id},
+            json={"message": "Should fail"},
         )
         assert r.status_code == 409
         assert r.json()["error"]["code"] == "comment_not_allowed"
 
-    def test_search_filter(self, client, users):
-        client.post(
+    def test_search_filter(self, authed, client, users):
+        authed.post(
             "/api/tickets",
             json={
                 "title": "UniqueSearchTerm123",
                 "description": "findme",
                 "priority": "High",
-                "created_by": users["alice"].id,
             },
         )
         r = client.get("/api/tickets", params={"q": "uniquesearchterm"})
@@ -137,23 +146,21 @@ class TestTicketAPI:
         assert r.json()["total"] >= 1
         assert any("UniqueSearchTerm123" in t["title"] for t in r.json()["items"])
 
-    def test_search_treats_percent_as_literal(self, client, users):
-        client.post(
+    def test_search_treats_percent_as_literal(self, authed, client, users):
+        authed.post(
             "/api/tickets",
             json={
                 "title": "100% complete",
                 "description": "done",
                 "priority": "Medium",
-                "created_by": users["alice"].id,
             },
         )
-        client.post(
+        authed.post(
             "/api/tickets",
             json={
                 "title": "100X complete",
                 "description": "done",
                 "priority": "Medium",
-                "created_by": users["alice"].id,
             },
         )
         r = client.get("/api/tickets", params={"q": "100%"})
@@ -162,133 +169,127 @@ class TestTicketAPI:
         assert "100% complete" in titles
         assert "100X complete" not in titles
 
-    def test_csv_export(self, client, users, open_ticket):
-        r = client.get("/api/tickets/export", params={"created_by": users["alice"].id})
+    def test_csv_export(self, authed, open_ticket):
+        r = authed.get("/api/tickets/export")
         assert r.status_code == 200
         assert "text/csv; charset=utf-8" in r.headers["content-type"]
         assert "Test ticket" in r.text
         assert "id,title,description" in r.text
 
-    def test_csv_export_header_only_when_no_tickets(self, client, users):
-        r = client.get("/api/tickets/export", params={"created_by": users["bob"].id})
+    def test_csv_export_header_only_when_no_tickets(self, agent_authed):
+        r = agent_authed.get("/api/tickets/export")
         assert r.status_code == 200
         assert "text/csv; charset=utf-8" in r.headers["content-type"]
         lines = r.text.strip().splitlines()
         assert len(lines) == 1
         assert lines[0].startswith("id,title,description")
 
-    def test_csv_export_neutralizes_formula_injection(self, client, users):
-        client.post(
+    def test_csv_export_neutralizes_formula_injection(self, authed):
+        authed.post(
             "/api/tickets",
             json={
                 "title": "=1+1",
                 "description": "+cmd",
                 "priority": "Medium",
-                "created_by": users["alice"].id,
             },
         )
-        r = client.get("/api/tickets/export", params={"created_by": users["alice"].id})
+        r = authed.get("/api/tickets/export")
         assert r.status_code == 200
         assert "'=1+1" in r.text
         assert "'+cmd" in r.text
 
-    def test_csv_export_quotes_commas_quotes_and_newlines(self, client, users):
+    def test_csv_export_quotes_commas_quotes_and_newlines(self, authed):
         description = 'He said "hello", then left\nand continued on the next line'
-        client.post(
+        authed.post(
             "/api/tickets",
             json={
                 "title": "CSV, quoting test",
                 "description": description,
                 "priority": "Medium",
-                "created_by": users["alice"].id,
             },
         )
-        r = client.get("/api/tickets/export", params={"created_by": users["alice"].id})
+        r = authed.get("/api/tickets/export")
         assert r.status_code == 200
 
         rows = list(csv.DictReader(io.StringIO(r.text)))
         exported = next(row for row in rows if row["title"] == "CSV, quoting test")
         assert exported["description"] == description
 
-    def test_title_max_length(self, client, users):
-        r = client.post(
+    def test_title_max_length(self, authed, users):
+        r = authed.post(
             "/api/tickets",
             json={
                 "title": "x" * 121,
                 "description": "desc",
                 "priority": "Medium",
-                "created_by": users["alice"].id,
             },
         )
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
-    def test_description_max_length(self, client, users):
-        r = client.post(
+    def test_description_max_length(self, authed, users):
+        r = authed.post(
             "/api/tickets",
             json={
                 "title": "Valid title",
                 "description": "x" * 5001,
                 "priority": "Medium",
-                "created_by": users["alice"].id,
             },
         )
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
-    def test_invalid_priority(self, client, users):
-        r = client.post(
+    def test_invalid_priority(self, authed, users):
+        r = authed.post(
             "/api/tickets",
             json={
                 "title": "Valid title",
                 "description": "desc",
                 "priority": "Urgent",
-                "created_by": users["alice"].id,
             },
         )
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
-    def test_invalid_status_value(self, client, open_ticket):
-        r = client.post(
+    def test_invalid_status_value(self, authed, open_ticket):
+        r = authed.post(
             f"/api/tickets/{open_ticket['id']}/status",
             json={"status": "Done"},
         )
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
-    def test_comment_empty_message(self, client, users, open_ticket):
-        r = client.post(
+    def test_comment_empty_message(self, authed, users, open_ticket):
+        r = authed.post(
             f"/api/tickets/{open_ticket['id']}/comments",
-            json={"message": "", "created_by": users["alice"].id},
+            json={"message": ""},
         )
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
-    def test_comment_whitespace_only_message(self, client, users, open_ticket):
-        r = client.post(
+    def test_comment_whitespace_only_message(self, authed, users, open_ticket):
+        r = authed.post(
             f"/api/tickets/{open_ticket['id']}/comments",
-            json={"message": "   ", "created_by": users["alice"].id},
+            json={"message": "   "},
         )
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
-    def test_comment_max_length(self, client, users, open_ticket):
-        r = client.post(
+    def test_comment_max_length(self, authed, users, open_ticket):
+        r = authed.post(
             f"/api/tickets/{open_ticket['id']}/comments",
-            json={"message": "x" * 2001, "created_by": users["alice"].id},
+            json={"message": "x" * 2001},
         )
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
-    def test_assignee_must_exist(self, client, users):
-        r = client.post(
+    def test_assignee_must_exist(self, authed, users):
+        r = authed.post(
             "/api/tickets",
             json={
                 "title": "Valid title",
                 "description": "desc",
                 "priority": "Medium",
-                "created_by": users["alice"].id,
                 "assigned_to": 9999,
             },
         )
@@ -305,23 +306,21 @@ class TestTicketAPI:
         assert r.status_code == 404
         assert r.json()["error"]["code"] == "not_found"
 
-    def test_search_filter_status_priority_and_query(self, client, users):
-        client.post(
+    def test_search_filter_status_priority_and_query(self, authed, client, users):
+        authed.post(
             "/api/tickets",
             json={
                 "title": "FilterTargetTicket",
                 "description": "needle in haystack",
                 "priority": "High",
-                "created_by": users["alice"].id,
             },
         )
-        client.post(
+        authed.post(
             "/api/tickets",
             json={
                 "title": "Other ticket",
                 "description": "needle but low priority",
                 "priority": "Low",
-                "created_by": users["alice"].id,
             },
         )
 

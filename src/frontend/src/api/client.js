@@ -1,4 +1,23 @@
 const API_BASE = '/api';
+const TOKEN_KEY = 'authToken';
+
+let unauthorizedHandler = () => {};
+
+export function setUnauthorizedHandler(handler) {
+  unauthorizedHandler = handler;
+}
+
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
 
 export class ApiError extends Error {
   constructor(code, message, details, status) {
@@ -10,13 +29,25 @@ export class ApiError extends Error {
 }
 
 async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  });
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  const token = getToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new ApiError('network_error', 'Unable to reach the server. Check your connection.', null, 0);
+  }
 
   if (response.status === 204) return null;
 
@@ -31,6 +62,10 @@ async function request(path, options = {}) {
 
   const data = await response.json();
   if (!response.ok) {
+    if (response.status === 401 && token) {
+      clearToken();
+      unauthorizedHandler();
+    }
     const err = data.error || {};
     throw new ApiError(err.code, err.message, err.details, response.status);
   }
@@ -38,7 +73,12 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  health: () => request('/health'),
+  login: (email, password) =>
+    request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  me: () => request('/auth/me'),
   getUsers: () => request('/users'),
   getTickets: (params = {}) => {
     const query = new URLSearchParams();
@@ -56,5 +96,5 @@ export const api = {
   getComments: (id) => request(`/tickets/${id}/comments`),
   addComment: (id, body) =>
     request(`/tickets/${id}/comments`, { method: 'POST', body: JSON.stringify(body) }),
-  exportCsv: (createdBy) => request(`/tickets/export?created_by=${createdBy}`),
+  exportCsv: () => request('/tickets/export'),
 };

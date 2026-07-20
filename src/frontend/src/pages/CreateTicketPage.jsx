@@ -7,7 +7,7 @@ import { ErrorBanner, FieldError, formatApiError } from '../components/ErrorBann
 
 export default function CreateTicketPage() {
   const navigate = useNavigate();
-  const { users, currentUserId } = useUser();
+  const { users } = useUser();
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -29,7 +29,6 @@ export default function CreateTicketPage() {
         title: form.title,
         description: form.description,
         priority: form.priority,
-        created_by: currentUserId,
         assigned_to: form.assigned_to ? Number(form.assigned_to) : null,
       });
       navigate(`/tickets/${ticket.id}`);

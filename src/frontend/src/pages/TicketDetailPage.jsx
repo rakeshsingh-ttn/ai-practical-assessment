@@ -6,13 +6,14 @@ import {
   COMMENT_ALLOWED_STATUSES,
   EDITABLE_STATUSES,
   PRIORITIES,
+  STATUS_CHANGE_ROLES,
 } from '../constants';
 import { useUser } from '../context/UserContext';
 import { ErrorBanner, FieldError, formatApiError } from '../components/ErrorBanner';
 
 export default function TicketDetailPage() {
   const { id } = useParams();
-  const { users, currentUserId } = useUser();
+  const { users, currentUser } = useUser();
   const [ticket, setTicket] = useState(null);
   const [comments, setComments] = useState([]);
   const [editForm, setEditForm] = useState(null);
@@ -23,8 +24,16 @@ export default function TicketDetailPage() {
   const [saving, setSaving] = useState(false);
 
   const isEditable = ticket && EDITABLE_STATUSES.includes(ticket.status);
+  const canEdit =
+    isEditable &&
+    (currentUser?.role !== 'Requester' || ticket?.created_by === currentUser?.id);
   const canComment = ticket && COMMENT_ALLOWED_STATUSES.includes(ticket.status);
+  const canCommentOnTicket =
+    canComment &&
+    (currentUser?.role !== 'Requester' || ticket?.created_by === currentUser?.id);
   const transitions = ticket ? ALLOWED_TRANSITIONS[ticket.status] || [] : [];
+  const canChangeStatus =
+    transitions.length > 0 && STATUS_CHANGE_ROLES.includes(currentUser?.role);
 
   const load = async () => {
     setLoading(true);
@@ -98,7 +107,7 @@ export default function TicketDetailPage() {
     if (!commentText.trim()) return;
     setError(null);
     try {
-      await api.addComment(id, { message: commentText, created_by: currentUserId });
+      await api.addComment(id, { message: commentText });
       setCommentText('');
       const commentsData = await api.getComments(id);
       setComments(commentsData);
@@ -142,7 +151,7 @@ export default function TicketDetailPage() {
 
       <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
-      {transitions.length > 0 && (
+      {canChangeStatus && (
         <div className="card status-actions">
           <h2>Status Actions</h2>
           <div className="btn-group">
@@ -160,9 +169,15 @@ export default function TicketDetailPage() {
         </div>
       )}
 
-      {!isEditable && (
+      {!canEdit && (
         <div className="card info-banner">
-          This ticket is read-only because it is in <strong>{ticket.status}</strong> status.
+          This ticket is read-only
+          {ticket.status !== 'Open' && ticket.status !== 'In Progress'
+            ? <> because it is in <strong>{ticket.status}</strong> status</>
+            : currentUser?.role === 'Requester' && ticket.created_by !== currentUser?.id
+              ? <> because you can only edit your own tickets</>
+              : <> because it is in <strong>{ticket.status}</strong> status</>}
+          .
         </div>
       )}
 
@@ -172,7 +187,7 @@ export default function TicketDetailPage() {
           Title
           <input
             value={editForm.title}
-            disabled={!isEditable}
+            disabled={!canEdit}
             onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
           />
           <FieldError error={fieldErrors.title} />
@@ -181,7 +196,7 @@ export default function TicketDetailPage() {
           Description
           <textarea
             rows={6}
-            disabled={!isEditable}
+            disabled={!canEdit}
             value={editForm.description}
             onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
           />
@@ -189,7 +204,7 @@ export default function TicketDetailPage() {
         <label>
           Priority
           <select
-            disabled={!isEditable}
+            disabled={!canEdit}
             value={editForm.priority}
             onChange={(e) => setEditForm((f) => ({ ...f, priority: e.target.value }))}
           >
@@ -201,7 +216,7 @@ export default function TicketDetailPage() {
         <label>
           Assignee
           <select
-            disabled={!isEditable}
+            disabled={!canEdit}
             value={editForm.assigned_to}
             onChange={(e) => setEditForm((f) => ({ ...f, assigned_to: e.target.value }))}
           >
@@ -211,7 +226,7 @@ export default function TicketDetailPage() {
             ))}
           </select>
         </label>
-        {isEditable && (
+        {canEdit && (
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? 'Saving...' : 'Save Changes'}
@@ -238,7 +253,7 @@ export default function TicketDetailPage() {
           </ul>
         )}
 
-        {canComment ? (
+        {canCommentOnTicket ? (
           <form className="comment-form" onSubmit={handleAddComment}>
             <textarea
               rows={3}
@@ -250,7 +265,9 @@ export default function TicketDetailPage() {
           </form>
         ) : (
           <p className="muted">
-            Comments are disabled for tickets in <strong>{ticket.status}</strong> status.
+            {canComment
+              ? <>Comments are only available on your own tickets.</>
+              : <>Comments are disabled for tickets in <strong>{ticket.status}</strong> status.</>}
           </p>
         )}
       </div>
