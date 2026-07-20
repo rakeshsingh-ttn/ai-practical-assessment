@@ -26,11 +26,11 @@ Three tables: `users`, `tickets`, `comments`. Full definitions in [data-model.md
 
 | Table | ORM model | Key points |
 |-------|-----------|------------|
-| `users` | `User` | id, name, email (unique), role enum |
+| `users` | `User` | id, name, email (unique), `password_hash`, role enum |
 | `tickets` | `Ticket` | FKs to users; priority/status enums; server-managed timestamps |
 | `comments` | `Comment` | FK to ticket + author; append-only |
 
-Migrations live in `database/migrations/versions/`.
+Migrations: `001` initial schema, `002` CHECK constraints on enums, `003` `password_hash` on users.
 
 ---
 
@@ -65,27 +65,36 @@ python -m src.backend.seed
 
 **Inserts:**
 
-- **4 users** — Admin, Agent, Manager, Requester (distinct roles)
+- **4 users** — Admin, Agent, Manager, Requester (distinct roles), each with bcrypt `password_hash`
 - **12 tickets** — spread across every status (Open, In Progress, Resolved, Closed, Cancelled) and priority (Low, Medium, High)
 - **8 comments** — on various tickets
+
+**Default login password (all seeded users):** `Password123`
+
+Emails: `alice@example.com`, `bob@example.com`, `carol@example.com`, `dave@example.com`.
 
 > **Note:** Seed sets ticket statuses directly for demo coverage. At runtime, all status changes must go through the state machine service (`POST /api/tickets/{id}/status`).
 
 **Verify seed:**
 
 ```bash
-# Count rows via API (server must be running)
+# Login (server must be running)
+curl -s -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alice@example.com","password":"Password123"}'
+
+# Public reads (no token required)
 curl http://localhost:8000/api/users
 curl http://localhost:8000/api/tickets
 
 # Or inspect SQLite directly
-sqlite3 app.db "SELECT COUNT(*) FROM users;"
+sqlite3 app.db "SELECT email, length(password_hash) FROM users;"
 sqlite3 app.db "SELECT COUNT(*) FROM tickets;"
 sqlite3 app.db "SELECT COUNT(*) FROM comments;"
 sqlite3 app.db "SELECT status, COUNT(*) FROM tickets GROUP BY status;"
 ```
 
-Expected counts: 4 users, 12 tickets, 8 comments.
+Expected counts: 4 users (each with a 60-char bcrypt hash), 12 tickets, 8 comments.
 
 ---
 
@@ -107,6 +116,15 @@ Docker: reset the named volume if a previous failed seed left a bad schema or pa
 ```bash
 docker compose down -v && docker compose up --build
 ```
+
+---
+
+## Authentication (stretch)
+
+- Passwords are stored as bcrypt hashes in `users.password_hash` (migration `003`).
+- Login: `POST /api/auth/login` → JWT; protected routes use `Authorization: Bearer <token>`.
+- Configure via `.env`: `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_EXPIRE_MINUTES` (see `.env.example`).
+- Full API auth rules: [api-contract.md](../api-contract.md#authentication).
 
 ---
 
@@ -183,6 +201,7 @@ Applied to `role`, `priority`, and `status`. This keeps storage aligned with CHE
 | Path | Purpose |
 |------|---------|
 | `src/backend/app/models/entities.py` | SQLAlchemy ORM models |
+| `src/backend/app/auth/` | JWT, password hashing, role permissions |
 | `src/backend/app/database.py` | Engine, session, `get_db` dependency |
 | `src/backend/seed.py` | Idempotent seed script |
 | `database/migrations/` | Alembic migration scripts |

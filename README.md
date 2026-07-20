@@ -1,6 +1,6 @@
 # Support Ticket Management System
 
-Internal support ticket app — FastAPI backend, React (Vite) frontend, SQLite database.
+Internal support ticket app — FastAPI backend, React (Vite) frontend, SQLite database, JWT authentication.
 
 ## Prerequisites
 
@@ -44,7 +44,37 @@ npm install
 npm run dev
 ```
 
-- App: http://localhost:5173
+- App: http://localhost:5173 (redirects to login if not authenticated)
+
+## Authentication
+
+The UI uses a login screen. All mutating API calls require a JWT bearer token.
+
+**Seeded users** (all share the same default password):
+
+| Email | Role |
+|-------|------|
+| `alice@example.com` | Admin |
+| `bob@example.com` | Agent |
+| `carol@example.com` | Manager |
+| `dave@example.com` | Requester |
+
+**Default password:** `Password123`
+
+```bash
+# Obtain a token
+curl -s -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alice@example.com","password":"Password123"}'
+
+# Use on protected endpoints
+curl -s http://localhost:8000/api/auth/me \
+  -H "Authorization: Bearer <access_token>"
+```
+
+JWT settings in `.env` (see `.env.example`): `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_EXPIRE_MINUTES`.
+
+Role rules: only Admin/Agent/Manager can change ticket status; Requesters can create, edit, and comment on **their own** tickets only. CSV export requires auth and is scoped to the logged-in user. Ticket reads remain public by deliberate choice for this demo — see [api-contract.md](api-contract.md#authentication).
 
 ## Run with Docker
 
@@ -83,15 +113,21 @@ The manual Python/Node setup above is unchanged and does not require Docker.
 pytest -v
 ```
 
+**91 tests** — includes auth (login, 401/403), role permissions, export auth scoping, state machine, and ticket API coverage.
+
 ## Project layout
 
 ```
 src/backend/app/
   main.py           # App factory, CORS, router registration
-  config.py         # pydantic-settings (.env)
+  config.py         # pydantic-settings (.env, JWT)
   database.py       # SQLAlchemy engine + get_db dependency
-  routers/          # HTTP endpoints
+  auth/             # JWT, passwords, permissions, get_current_user
+  routers/          # HTTP endpoints (auth, health, users, tickets)
   services/         # Business logic
   models/           # SQLAlchemy ORM entities
   schemas/          # Pydantic request/response models
+src/frontend/src/
+  pages/LoginPage.jsx   # Login screen (replaces acting-as selector)
+  api/client.js         # JWT storage + Authorization header
 ```

@@ -24,9 +24,38 @@ All API errors return a single consistent JSON shape:
 
 | Code | When | Example `error.code` values |
 |------|------|----------------------------|
+| **401** | Missing, invalid, or expired JWT on a protected endpoint; invalid login credentials | `unauthorized` |
+| **403** | Authenticated but not permitted for this action (role rule) | `forbidden` |
 | **422** | Request body or query params fail schema validation (missing fields, wrong types, out-of-range lengths, invalid enum strings) | `validation_error` |
 | **404** | Referenced resource does not exist (ticket, user) | `not_found` |
 | **409** | Business-rule conflict — valid JSON but operation not allowed | `invalid_transition`, `ticket_not_editable`, `comment_not_allowed` |
+
+### Authentication
+
+Protected endpoints require a JWT bearer token:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+Obtain a token via `POST /api/auth/login`. Token lifetime is configured by `JWT_EXPIRE_MINUTES` (default 24 hours).
+
+**Public endpoints (no auth):** `GET /api/health`, `GET /api/users`, `GET /api/tickets`, `GET /api/tickets/{id}`, `GET /api/tickets/{id}/comments`, `POST /api/auth/login`.
+
+**Protected endpoints (auth required):** `POST /api/tickets`, `PATCH /api/tickets/{id}`, `POST /api/tickets/{id}/status`, `POST /api/tickets/{id}/comments`, `GET /api/tickets/export`, `GET /api/auth/me`.
+
+**Deliberate choice — public reads:** For this internal tool, read endpoints (`GET /api/tickets`, `GET /api/tickets/{id}`, `GET /api/tickets/{id}/comments`, and `GET /api/users`) are **intentionally unauthenticated** so anyone on the network can browse tickets and pick assignees. All mutations (`POST`/`PATCH` on tickets, status changes, comments) require a valid JWT. CSV export also requires a JWT and derives the exported user from the token — it does not accept a `created_by` query parameter, so callers cannot download another user's ticket export by guessing an id.
+
+**Role rules (403 when violated):**
+
+| Action | Admin / Agent / Manager | Requester |
+|--------|-------------------------|-----------|
+| Change status | Allowed | **Forbidden** |
+| Create ticket | Allowed; `created_by` set from token | Allowed; `created_by` set from token |
+| Edit ticket | Any ticket (if status allows edit) | Own tickets only |
+| Add comment | Any ticket (if status allows comments) | Own tickets only |
+
+`created_by` on tickets and comments is **never** accepted in request bodies — it is always derived from the authenticated user.
 
 ### Status Changes — Single Enforcement Point
 
@@ -80,11 +109,101 @@ None expected.
 
 ---
 
+## POST /api/auth/login
+
+### Purpose
+
+Authenticate with email and password. Returns a JWT for use on protected endpoints.
+
+### Request
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "alice@example.com",
+  "password": "Password123"
+}
+```
+
+### Response
+
+**200 OK**
+
+```json
+{
+  "access_token": "<jwt>",
+  "token_type": "bearer"
+}
+```
+
+### Validation Rules
+
+| Field | Rules |
+|-------|-------|
+| `email` | Required |
+| `password` | Required |
+
+Extra fields are rejected (`422`).
+
+### Error Responses
+
+**401** — invalid email or password:
+
+```json
+{
+  "error": {
+    "code": "unauthorized",
+    "message": "Invalid email or password",
+    "details": null
+  }
+}
+```
+
+**422** — validation failure.
+
+---
+
+## GET /api/auth/me
+
+### Purpose
+
+Return the currently authenticated user (from JWT).
+
+### Request
+
+```http
+GET /api/auth/me
+Authorization: Bearer <access_token>
+```
+
+### Response
+
+**200 OK**
+
+```json
+{
+  "id": 1,
+  "name": "Alice Admin",
+  "email": "alice@example.com",
+  "role": "Admin"
+}
+```
+
+### Error Responses
+
+**401** — missing, invalid, or expired token.
+
+---
+
 ## GET /api/users
 
 ### Purpose
 
-List all seeded users for the "acting as" dropdown and assignee picker.
+List all seeded users for the assignee picker. Public (no auth required).
 
 ### Request
 
@@ -223,12 +342,13 @@ Results ordered by `updated_at` descending.
 
 ### Purpose
 
-Create a new ticket. Always starts in **Open** status.
+Create a new ticket. Always starts in **Open** status. **`created_by` is set server-side from the JWT** — do not send it in the body.
 
 ### Request
 
 ```http
 POST /api/tickets
+Authorization: Bearer <access_token>
 Content-Type: application/json
 ```
 
@@ -237,7 +357,6 @@ Content-Type: application/json
   "title": "Cannot login to portal",
   "description": "User reports 401 after password reset",
   "priority": "High",
-  "created_by": 4,
   "assigned_to": 2
 }
 ```
@@ -271,14 +390,15 @@ Content-Type: application/json
 | `title` | Required; 3–120 characters |
 | `description` | Optional; default `""`; max 5000 characters |
 | `priority` | Required; `Low`, `Medium`, or `High` |
-| `created_by` | Required; must reference an existing user |
 | `assigned_to` | Optional; if provided, must reference an existing user |
 
-`status` is **not accepted** on create — always defaults to `Open`.
+`status` and `created_by` are **not accepted** on create — status defaults to `Open`; `created_by` comes from the authenticated user.
 
 ### Error Responses
 
-**422** — validation failure (short title, invalid priority, missing `created_by`):
+**401** — missing or invalid JWT.
+
+**422** — validation failure (short title, invalid priority, unknown fields such as `created_by`):
 
 ```json
 {
@@ -297,7 +417,7 @@ Content-Type: application/json
 }
 ```
 
-**404** — `created_by` or `assigned_to` references a non-existent user:
+**404** — `assigned_to` references a non-existent user:
 
 ```json
 {
@@ -315,24 +435,23 @@ Content-Type: application/json
 
 ### Purpose
 
-Download a CSV of all tickets created by a given user (`created_by`). Includes tickets in all statuses. **Must be registered before `GET /api/tickets/{id}`** so `export` is not parsed as a ticket id.
+Download a CSV of all tickets **created by the authenticated user**. Includes tickets in all statuses. **Must be registered before `GET /api/tickets/{id}`** so `export` is not parsed as a ticket id.
 
 ### Request
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `created_by` | integer | Yes | Creator user id |
-
 ```http
-GET /api/tickets/export?created_by=4
+GET /api/tickets/export
+Authorization: Bearer <access_token>
 ```
+
+No query parameters. Scope is always the JWT subject — `created_by` is not accepted (prevents exporting another user's tickets).
 
 ### Response
 
 **200 OK**
 
 ```
-Content-Type: text/csv
+Content-Type: text/csv; charset=utf-8
 Content-Disposition: attachment; filename="tickets_user_4.csv"
 ```
 
@@ -345,24 +464,12 @@ If the user has no tickets, returns a CSV with the header row only.
 
 ### Validation Rules
 
-- `created_by` is required.
-- `created_by` must reference an existing user.
+- Valid JWT required.
+- Export includes only tickets where `created_by` equals the authenticated user's id.
 
 ### Error Responses
 
-**422** — missing `created_by` query parameter.
-
-**404** — user not found:
-
-```json
-{
-  "error": {
-    "code": "not_found",
-    "message": "User not found",
-    "details": { "resource": "User", "id": 999 }
-  }
-}
-```
+**401** — missing or invalid JWT.
 
 ---
 
@@ -406,7 +513,7 @@ GET /api/tickets/1
 
 ### Purpose
 
-Update ticket fields. Allowed **only** when status is **Open** or **In Progress**. Does **not** accept or change `status` — use the dedicated status endpoint instead.
+Update ticket fields. Allowed **only** when status is **Open** or **In Progress**. Does **not** accept or change `status` — use the dedicated status endpoint instead. Requires JWT.
 
 ### Request
 
@@ -414,6 +521,7 @@ Partial update — include only fields to change.
 
 ```http
 PATCH /api/tickets/1
+Authorization: Bearer <access_token>
 Content-Type: application/json
 ```
 
@@ -444,10 +552,15 @@ Accepted fields: `title`, `description`, `priority`, `assigned_to` only.
 |---------------|-------------|
 | Ticket must exist | 404 |
 | Status must be `Open` or `In Progress` | 409 |
-| `status` field in body | Not in schema — ignored if sent |
+| Requester may only edit own tickets | 403 |
+| `status` field in body | Rejected — `422` (`extra=forbid`) |
 | `assigned_to` user must exist (when non-null) | 404 |
 
 ### Error Responses
+
+**401** — missing or invalid JWT.
+
+**403** — requester editing another user's ticket.
 
 **422** — field validation failure.
 
@@ -471,12 +584,13 @@ Accepted fields: `title`, `description`, `priority`, `assigned_to` only.
 
 ### Purpose
 
-Change ticket status via the state machine. **This is the ONLY endpoint that may change `status`.** All transitions are validated by `ticket_status.transition()`.
+Change ticket status via the state machine. **This is the ONLY endpoint that may change `status`.** Requires JWT. Only **Admin**, **Agent**, and **Manager** roles may call this endpoint.
 
 ### Request
 
 ```http
 POST /api/tickets/1/status
+Authorization: Bearer <access_token>
 Content-Type: application/json
 ```
 
@@ -499,9 +613,14 @@ Content-Type: application/json
 | Business rule | Enforcement |
 |---------------|-------------|
 | Ticket must exist | 404 |
+| Caller must be Admin, Agent, or Manager | 403 |
 | Transition must be allowed from current status | 409 |
 
 ### Error Responses
+
+**401** — missing or invalid JWT.
+
+**403** — requester (or other forbidden role) attempting status change.
 
 **422** — invalid or missing `status` value (e.g. `"Done"`):
 
@@ -589,19 +708,19 @@ GET /api/tickets/1/comments
 
 ### Purpose
 
-Add a comment to a ticket. Allowed when ticket status is **Open**, **In Progress**, or **Resolved**. Rejected when **Closed** or **Cancelled**.
+Add a comment to a ticket. Allowed when ticket status is **Open**, **In Progress**, or **Resolved**. Rejected when **Closed** or **Cancelled**. Requires JWT. **`created_by` is set server-side from the JWT.**
 
 ### Request
 
 ```http
 POST /api/tickets/1/comments
+Authorization: Bearer <access_token>
 Content-Type: application/json
 ```
 
 ```json
 {
-  "message": "Investigating the auth logs now.",
-  "created_by": 2
+  "message": "Investigating the auth logs now."
 }
 ```
 
@@ -629,19 +748,22 @@ Content-Type: application/json
 | Field | Rules |
 |-------|-------|
 | `message` | Required; 1–2000 characters |
-| `created_by` | Required; must reference an existing user |
 
 | Business rule | Enforcement |
 |---------------|-------------|
 | Ticket must exist | 404 |
 | Ticket status must be Open, In Progress, or Resolved | 409 |
-| `created_by` user must exist | 404 |
+| Requester may only comment on own tickets | 403 |
 
 ### Error Responses
 
-**422** — empty/whitespace message or message too long.
+**401** — missing or invalid JWT.
 
-**404** — ticket or `created_by` user not found.
+**403** — requester commenting on another user's ticket.
+
+**422** — empty/whitespace message, message too long, or unknown fields such as `created_by`.
+
+**404** — ticket not found.
 
 **409** — comment on Closed or Cancelled ticket:
 
