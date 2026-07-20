@@ -21,11 +21,17 @@ def _error_response(status_code: int, code: str, message: str, details: dict | l
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def app_error_handler(_request: Request, exc: AppError):
-        status_code = 409 if exc.code in {
+        if exc.code in {
             "invalid_transition",
             "ticket_not_editable",
             "comment_not_allowed",
-        } else 404 if exc.code == "not_found" else 400
+        }:
+            status_code = 409
+        elif exc.code == "not_found":
+            status_code = 404
+        else:
+            status_code = 500
+            exc = AppError("internal_error", exc.message, exc.details)
         return _error_response(status_code, exc.code, exc.message, exc.details)
 
     @app.exception_handler(RequestValidationError)
