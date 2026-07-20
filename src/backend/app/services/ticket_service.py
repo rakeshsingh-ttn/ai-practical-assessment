@@ -146,6 +146,9 @@ def create_ticket(db: Session, data: TicketCreate) -> Ticket:
 def update_ticket(db: Session, ticket_id: int, data: TicketUpdate) -> Ticket:
     ticket = _get_ticket_for_update(db, ticket_id)
 
+    if not data.model_fields_set:
+        return ticket
+
     if ticket.status not in EDITABLE_STATUSES:
         raise TicketNotEditableError(ticket.status.value)
 
