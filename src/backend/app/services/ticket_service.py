@@ -5,6 +5,10 @@ from datetime import datetime, timezone
 from sqlalchemy import exists, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
+from src.backend.app.auth.permissions import (
+    require_status_change_role,
+    require_ticket_owner,
+)
 from src.backend.app.exceptions import (
     CommentNotAllowedError,
     NotFoundError,
@@ -124,8 +128,7 @@ def list_tickets(
     return list(tickets), total
 
 
-def create_ticket(db: Session, data: TicketCreate) -> Ticket:
-    get_user_or_404(db, data.created_by)
+def create_ticket(db: Session, data: TicketCreate, actor: User) -> Ticket:
     if data.assigned_to is not None:
         get_user_or_404(db, data.assigned_to)
 
@@ -135,7 +138,7 @@ def create_ticket(db: Session, data: TicketCreate) -> Ticket:
         priority=data.priority,
         status=TicketStatus.OPEN,
         assigned_to=data.assigned_to,
-        created_by=data.created_by,
+        created_by=actor.id,
     )
     db.add(ticket)
     db.commit()
@@ -143,8 +146,9 @@ def create_ticket(db: Session, data: TicketCreate) -> Ticket:
     return get_ticket_or_404(db, ticket.id)
 
 
-def update_ticket(db: Session, ticket_id: int, data: TicketUpdate) -> Ticket:
+def update_ticket(db: Session, ticket_id: int, data: TicketUpdate, actor: User) -> Ticket:
     ticket = _get_ticket_for_update(db, ticket_id)
+    require_ticket_owner(actor, ticket)
 
     if not data.model_fields_set:
         return ticket
@@ -169,7 +173,8 @@ def update_ticket(db: Session, ticket_id: int, data: TicketUpdate) -> Ticket:
     return ticket
 
 
-def change_ticket_status(db: Session, ticket_id: int, target: TicketStatus) -> Ticket:
+def change_ticket_status(db: Session, ticket_id: int, target: TicketStatus, actor: User) -> Ticket:
+    require_status_change_role(actor)
     ticket = _get_ticket_for_update(db, ticket_id)
     transition(ticket, target)
     ticket.updated_at = datetime.now(timezone.utc)
@@ -194,16 +199,16 @@ def list_comments(db: Session, ticket_id: int) -> list[Comment]:
     )
 
 
-def create_comment(db: Session, ticket_id: int, data: CommentCreate) -> Comment:
+def create_comment(db: Session, ticket_id: int, data: CommentCreate, actor: User) -> Comment:
     ticket = _get_ticket_for_update(db, ticket_id)
+    require_ticket_owner(actor, ticket)
     if ticket.status not in COMMENT_ALLOWED_STATUSES:
         raise CommentNotAllowedError(ticket.status.value)
 
-    get_user_or_404(db, data.created_by)
     comment = Comment(
         ticket_id=ticket_id,
         message=data.message,
-        created_by=data.created_by,
+        created_by=actor.id,
     )
     db.add(comment)
     db.commit()
