@@ -109,3 +109,64 @@ Status summary after Day 1 (backend + both smoke passes):
 **Evidence:** `test-results.md` → UI Smoke Test section; `acceptance-criteria.md` → 12 Core/Validation/Error Handling boxes ticked.
 
 **Commit:** `docs: record UI smoke test results and export that chat into ai-prompts/testing.md`
+
+---
+
+# Chat 11 — Smoke test follow-up fixes
+_Exported on 7/20/2026 at 10:11:00 GMT+5:30 from Cursor (3.12.17)_
+
+---
+
+## 11a — Timestamp precision and CSV quoting gaps
+
+**User**
+
+Two issues surfaced during manual smoke testing:
+1. Timestamp precision is inconsistent: seeded rows return second precision (`2026-07-19T13:33:03`) while updated rows return microseconds (`2026-07-19T16:12:45.372199`). Normalize API responses to a consistent ISO format (seconds precision) via the Pydantic response schemas.
+2. If not already covered by the current test suite: add an integration test proving CSV export correctly quotes fields containing commas, double quotes, and newlines (create a ticket with such a description in the test).
+
+Run the tests after each change.
+
+**Cursor**
+
+**Fix 1 — timestamp precision** (`src/backend/app/schemas/__init__.py`)
+- Added `_datetime_to_second_precision()` helper
+- `@field_serializer` on `TicketOut` (`created_at`, `updated_at`) and `CommentOut` (`created_at`) strips microseconds before JSON serialization
+- Added `test_api_timestamps_use_second_precision` — PATCH response timestamps must not contain fractional seconds
+
+**After fix 1:** `57 passed`
+
+**Fix 2 — CSV quoting test** (`tests/test_ticket_api.py`)
+- Added `test_csv_export_quotes_commas_quotes_and_newlines`
+- Creates ticket with comma in title and description containing `"`, `,`, and newline
+- Parses export with `csv.DictReader` to verify round-trip field values
+
+**After fix 2:** `58 passed`
+
+---
+
+## 11b — Commits and export
+
+**User**
+
+Commits: `fix: normalize timestamp precision in API responses`, `test: cover CSV quoting edge cases`. Export → `ai-prompts/testing.md` (append).
+
+**Cursor**
+
+| Commit | Message |
+|--------|---------|
+| `a8fb181` | `fix: normalize timestamp precision in API responses` |
+| `b36f458` | `test: cover CSV quoting edge cases` |
+
+Final suite: `venv/bin/python -m pytest -q` → **58 passed**
+
+---
+
+## Outcome
+
+| Item | Status |
+|------|--------|
+| Timestamp precision in API JSON | Normalized to second precision via Pydantic serializers |
+| CSV special-character quoting | Covered by integration test (`csv.DictReader` round-trip) |
+| Test suite | **58 passed** |
+

@@ -28,13 +28,22 @@ class TicketStatus(str, enum.Enum):
     CANCELLED = "Cancelled"
 
 
+def _enum_column(enum_class: type[enum.Enum]):
+    """Persist enum values (e.g. 'Admin'), not member names (e.g. 'ADMIN')."""
+    return Enum(
+        enum_class,
+        native_enum=False,
+        values_callable=lambda members: [member.value for member in members],
+    )
+
+
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False)
+    role: Mapped[UserRole] = mapped_column(_enum_column(UserRole), nullable=False)
 
     created_tickets: Mapped[list["Ticket"]] = relationship(
         back_populates="creator",
@@ -59,9 +68,9 @@ class Ticket(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    priority: Mapped[TicketPriority] = mapped_column(Enum(TicketPriority), nullable=False)
+    priority: Mapped[TicketPriority] = mapped_column(_enum_column(TicketPriority), nullable=False)
     status: Mapped[TicketStatus] = mapped_column(
-        Enum(TicketStatus), nullable=False, default=TicketStatus.OPEN
+        _enum_column(TicketStatus), nullable=False, default=TicketStatus.OPEN
     )
     assigned_to: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)

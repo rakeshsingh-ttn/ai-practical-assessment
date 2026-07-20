@@ -46,6 +46,36 @@ npm run dev
 
 - App: http://localhost:5173
 
+## Run with Docker
+
+Prerequisites: Docker and Docker Compose.
+
+From the project root:
+
+```bash
+docker compose up --build
+```
+
+- App: http://localhost:8080
+- API (proxied): http://localhost:8080/api/health
+- Swagger UI: http://localhost:8080/docs
+
+On first start the backend runs `alembic upgrade head` and seeds sample data if the database is empty. SQLite is stored in the `ticket-data` Docker volume (`/data/app.db` in the backend container).
+
+Stop and remove containers (data volume is kept):
+
+```bash
+docker compose down
+```
+
+Remove containers and the database volume:
+
+```bash
+docker compose down -v
+```
+
+The manual Python/Node setup above is unchanged and does not require Docker.
+
 ## Tests
 
 ```bash

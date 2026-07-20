@@ -16,24 +16,28 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_check_constraint(
-        "ck_tickets_status",
-        "tickets",
-        "status IN ('Open', 'In Progress', 'Resolved', 'Closed', 'Cancelled')",
-    )
-    op.create_check_constraint(
-        "ck_tickets_priority",
-        "tickets",
-        "priority IN ('Low', 'Medium', 'High')",
-    )
-    op.create_check_constraint(
-        "ck_users_role",
-        "users",
-        "role IN ('Admin', 'Agent', 'Manager', 'Requester')",
-    )
+    # SQLite cannot ALTER constraints; batch mode recreates the table.
+    with op.batch_alter_table("tickets") as batch_op:
+        batch_op.create_check_constraint(
+            "ck_tickets_status",
+            "status IN ('Open', 'In Progress', 'Resolved', 'Closed', 'Cancelled')",
+        )
+        batch_op.create_check_constraint(
+            "ck_tickets_priority",
+            "priority IN ('Low', 'Medium', 'High')",
+        )
+
+    with op.batch_alter_table("users") as batch_op:
+        batch_op.create_check_constraint(
+            "ck_users_role",
+            "role IN ('Admin', 'Agent', 'Manager', 'Requester')",
+        )
 
 
 def downgrade() -> None:
-    op.drop_constraint("ck_users_role", "users", type_="check")
-    op.drop_constraint("ck_tickets_priority", "tickets", type_="check")
-    op.drop_constraint("ck_tickets_status", "tickets", type_="check")
+    with op.batch_alter_table("users") as batch_op:
+        batch_op.drop_constraint("ck_users_role", type_="check")
+
+    with op.batch_alter_table("tickets") as batch_op:
+        batch_op.drop_constraint("ck_tickets_priority", type_="check")
+        batch_op.drop_constraint("ck_tickets_status", type_="check")
