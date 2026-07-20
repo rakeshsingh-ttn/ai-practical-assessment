@@ -31,6 +31,34 @@ def _escape_like(value: str) -> str:
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
+def _ticket_filter_clauses(
+    *,
+    status: TicketStatus | None = None,
+    priority: TicketPriority | None = None,
+    q: str | None = None,
+    assigned_to: int | None = None,
+    created_by: int | None = None,
+) -> list:
+    clauses = []
+    if status:
+        clauses.append(Ticket.status == status)
+    if priority:
+        clauses.append(Ticket.priority == priority)
+    if assigned_to is not None:
+        clauses.append(Ticket.assigned_to == assigned_to)
+    if created_by is not None:
+        clauses.append(Ticket.created_by == created_by)
+    if q:
+        pattern = f"%{_escape_like(q)}%"
+        clauses.append(
+            or_(
+                Ticket.title.ilike(pattern, escape="\\"),
+                Ticket.description.ilike(pattern, escape="\\"),
+            )
+        )
+    return clauses
+
+
 def get_user_or_404(db: Session, user_id: int) -> User:
     user = db.get(User, user_id)
     if not user:
@@ -72,42 +100,21 @@ def list_tickets(
     limit: int = 50,
     offset: int = 0,
 ) -> tuple[list[Ticket], int]:
-    query = select(Ticket).options(joinedload(Ticket.creator), joinedload(Ticket.assignee))
+    clauses = _ticket_filter_clauses(
+        status=status,
+        priority=priority,
+        q=q,
+        assigned_to=assigned_to,
+        created_by=created_by,
+    )
 
-    if status:
-        query = query.where(Ticket.status == status)
-    if priority:
-        query = query.where(Ticket.priority == priority)
-    if assigned_to is not None:
-        query = query.where(Ticket.assigned_to == assigned_to)
-    if created_by is not None:
-        query = query.where(Ticket.created_by == created_by)
-    if q:
-        pattern = f"%{_escape_like(q)}%"
-        query = query.where(
-            or_(
-                Ticket.title.ilike(pattern, escape="\\"),
-                Ticket.description.ilike(pattern, escape="\\"),
-            )
-        )
+    query = select(Ticket).options(joinedload(Ticket.creator), joinedload(Ticket.assignee))
+    if clauses:
+        query = query.where(*clauses)
 
     count_query = select(func.count()).select_from(Ticket)
-    if status:
-        count_query = count_query.where(Ticket.status == status)
-    if priority:
-        count_query = count_query.where(Ticket.priority == priority)
-    if assigned_to is not None:
-        count_query = count_query.where(Ticket.assigned_to == assigned_to)
-    if created_by is not None:
-        count_query = count_query.where(Ticket.created_by == created_by)
-    if q:
-        pattern = f"%{_escape_like(q)}%"
-        count_query = count_query.where(
-            or_(
-                Ticket.title.ilike(pattern, escape="\\"),
-                Ticket.description.ilike(pattern, escape="\\"),
-            )
-        )
+    if clauses:
+        count_query = count_query.where(*clauses)
     total = db.execute(count_query).scalar_one()
 
     tickets = db.execute(
