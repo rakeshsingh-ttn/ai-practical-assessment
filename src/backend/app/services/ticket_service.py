@@ -2,7 +2,7 @@ import csv
 import io
 from datetime import datetime, timezone
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import exists, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from src.backend.app.exceptions import (
@@ -174,7 +174,11 @@ def change_ticket_status(db: Session, ticket_id: int, target: TicketStatus) -> T
 
 
 def list_comments(db: Session, ticket_id: int) -> list[Comment]:
-    get_ticket_or_404(db, ticket_id)
+    ticket_exists = db.execute(
+        select(exists().where(Ticket.id == ticket_id))
+    ).scalar()
+    if not ticket_exists:
+        raise NotFoundError("Ticket", ticket_id)
     return list(
         db.execute(
             select(Comment)
