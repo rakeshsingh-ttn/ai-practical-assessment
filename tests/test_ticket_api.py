@@ -151,14 +151,14 @@ class TestTicketAPI:
     def test_csv_export(self, client, users, open_ticket):
         r = client.get("/api/tickets/export", params={"created_by": users["alice"].id})
         assert r.status_code == 200
-        assert "text/csv" in r.headers["content-type"]
+        assert "text/csv; charset=utf-8" in r.headers["content-type"]
         assert "Test ticket" in r.text
         assert "id,title,description" in r.text
 
     def test_csv_export_header_only_when_no_tickets(self, client, users):
         r = client.get("/api/tickets/export", params={"created_by": users["bob"].id})
         assert r.status_code == 200
-        assert "text/csv" in r.headers["content-type"]
+        assert "text/csv; charset=utf-8" in r.headers["content-type"]
         lines = r.text.strip().splitlines()
         assert len(lines) == 1
         assert lines[0].startswith("id,title,description")

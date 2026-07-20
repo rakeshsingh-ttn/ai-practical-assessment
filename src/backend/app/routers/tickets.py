@@ -51,7 +51,7 @@ def export_tickets(created_by: int, db: Session = Depends(get_db)):
     csv_content = ticket_service.export_tickets_csv(db, created_by)
     return Response(
         content=csv_content,
-        media_type="text/csv",
+        media_type="text/csv; charset=utf-8",
         headers={
             "Content-Disposition": f'attachment; filename="tickets_user_{created_by}.csv"'
         },
