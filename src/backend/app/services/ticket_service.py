@@ -27,6 +27,10 @@ def _sanitize_csv_cell(value: str) -> str:
     return value
 
 
+def _escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def get_user_or_404(db: Session, user_id: int) -> User:
     user = db.get(User, user_id)
     if not user:
@@ -67,9 +71,12 @@ def list_tickets(
     if created_by is not None:
         query = query.where(Ticket.created_by == created_by)
     if q:
-        pattern = f"%{q}%"
+        pattern = f"%{_escape_like(q)}%"
         query = query.where(
-            or_(Ticket.title.ilike(pattern), Ticket.description.ilike(pattern))
+            or_(
+                Ticket.title.ilike(pattern, escape="\\"),
+                Ticket.description.ilike(pattern, escape="\\"),
+            )
         )
 
     count_query = select(func.count()).select_from(Ticket)
@@ -82,9 +89,12 @@ def list_tickets(
     if created_by is not None:
         count_query = count_query.where(Ticket.created_by == created_by)
     if q:
-        pattern = f"%{q}%"
+        pattern = f"%{_escape_like(q)}%"
         count_query = count_query.where(
-            or_(Ticket.title.ilike(pattern), Ticket.description.ilike(pattern))
+            or_(
+                Ticket.title.ilike(pattern, escape="\\"),
+                Ticket.description.ilike(pattern, escape="\\"),
+            )
         )
     total = db.execute(count_query).scalar_one()
 

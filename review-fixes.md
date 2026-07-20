@@ -31,3 +31,13 @@ Backend findings from `code-review-notes.md`, applied one at a time with test ev
 | **Finding** | CSV export used `limit=10000`, silently truncating users with more tickets. |
 | **Change** | `export_tickets_csv()` now pages through results in batches of 500 until all rows are exported. |
 | **Test evidence** | `venv/bin/python -m pytest -q` → **51 passed** (existing export tests) |
+
+---
+
+## Fix 4 — Search `q` LIKE wildcards (Should-fix)
+
+| | |
+|---|---|
+| **Finding** | `%` and `_` in search query were treated as SQL wildcards (`GET ?q=100%` matched unintended rows). |
+| **Change** | Added `_escape_like()` and `escape="\\"` on `ilike` filters. Added `test_search_treats_percent_as_literal`. |
+| **Test evidence** | `venv/bin/python -m pytest -q` → **52 passed** |

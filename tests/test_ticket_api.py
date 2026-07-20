@@ -81,6 +81,31 @@ class TestTicketAPI:
         assert r.json()["total"] >= 1
         assert any("UniqueSearchTerm123" in t["title"] for t in r.json()["items"])
 
+    def test_search_treats_percent_as_literal(self, client, users):
+        client.post(
+            "/api/tickets",
+            json={
+                "title": "100% complete",
+                "description": "done",
+                "priority": "Medium",
+                "created_by": users["alice"].id,
+            },
+        )
+        client.post(
+            "/api/tickets",
+            json={
+                "title": "100X complete",
+                "description": "done",
+                "priority": "Medium",
+                "created_by": users["alice"].id,
+            },
+        )
+        r = client.get("/api/tickets", params={"q": "100%"})
+        assert r.status_code == 200
+        titles = [item["title"] for item in r.json()["items"]]
+        assert "100% complete" in titles
+        assert "100X complete" not in titles
+
     def test_csv_export(self, client, users, open_ticket):
         r = client.get("/api/tickets/export", params={"created_by": users["alice"].id})
         assert r.status_code == 200
