@@ -111,3 +111,59 @@ Committed `candidate-info.md`, `pr-description.md`, and this export.
 | `pr-description.md` | Complete PR-style summary for submission |
 | `ai-prompts/documentation.md` | Chat 8 appended |
 
+---
+
+# Chat 9 — Reflection interview and AI usage summary
+_Exported on 7/20/2026 at 10:22:00 GMT+5:30 from Cursor (3.12.17)_
+
+---
+
+## 9a — Eight-question reflection interview
+
+**User**
+
+Interview me for `reflection.md`: ask me 8 short questions, one at a time, about what I built, where AI helped most, where it was wrong (use `debugging-notes.md` and `code-review-notes.md` for real examples), how I validated output, and what I'd improve. Then write `reflection.md` from my answers using the template sections (What I Built / How I Used AI / What AI Helped With Most / What AI Got Wrong / How I Validated AI Output / What I Would Improve Next / Reusable Workflow). Also write `final-ai-usage-summary.md`: a one-page lifecycle map — phase → how AI was used → artifact/chat that proves it (link the `ai-prompts/` files and key commits).
+
+**Cursor**
+
+Conducted an 8-question interview (one at a time). Wrote both artifacts in the candidate's first-person voice from their answers.
+
+**Interview topics covered:**
+1. What I built — state machine as the strongest deliverable
+2. How I used AI — artifacts-first, Chat vs Agent, frontend accepted in larger chunks
+3. What AI helped with most — transition test matrix, contract→endpoints chain, seed/migrations
+4. What AI got wrong — CSV formula injection (`70d7715`), unescaped `LIKE` wildcards (`677475a`)
+5. How I validated — break-the-tests check, 27 API + 14 UI smoke, README dry run, evidence before ticking criteria
+6. What I'd improve next — commit frontend review fixes, reconcile `api-contract.md`, Playwright over manual UI
+7. Reusable workflow — artifact order, `.cursor/rules`, failure-scenario gate; avoid big frontend generations
+8. Closing — warning (edges fail quietly) + habit (capture evidence as you go)
+
+**`reflection.md`** — all seven template sections plus closing advice for teammates.
+
+**`final-ai-usage-summary.md`** — 10-phase lifecycle table linking `ai-prompts/*.md`, key commits, conventions, honest gaps, final test bar (58 passed).
+
+---
+
+## 9b — Commit and export
+
+**User**
+
+Commit: `docs: reflection and final AI usage summary`. Export → `ai-prompts/documentation.md`.
+
+**Cursor**
+
+Committed `reflection.md`, `final-ai-usage-summary.md`, and this export.
+
+**Commit:** `docs: reflection and final AI usage summary`
+
+---
+
+## Outcome
+
+| Artifact | Status |
+|----------|--------|
+| `reflection.md` | Complete — first-person reflection from 8-question interview |
+| `final-ai-usage-summary.md` | Complete — one-page AI lifecycle map |
+| `ai-prompts/documentation.md` | Chat 9 appended |
+
+
