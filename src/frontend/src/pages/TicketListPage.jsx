@@ -6,7 +6,7 @@ import { useUser } from '../context/UserContext';
 import { ErrorBanner, formatApiError } from '../components/ErrorBanner';
 
 export default function TicketListPage() {
-  const { currentUser, currentUserId } = useUser();
+  const { currentUser } = useUser();
   const [tickets, setTickets] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -32,14 +32,14 @@ export default function TicketListPage() {
   }, [filters]);
 
   const handleExport = async () => {
-    if (!currentUserId) return;
+    if (!currentUser?.id) return;
     try {
-      const response = await api.exportCsv(currentUserId);
+      const response = await api.exportCsv();
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `tickets_user_${currentUserId}.csv`;
+      a.download = `tickets_user_${currentUser.id}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -128,7 +128,7 @@ export default function TicketListPage() {
                     </span>
                   </td>
                   <td>{ticket.assignee?.name || '—'}</td>
-                  <td>{ticket.creator?.name || currentUser?.name}</td>
+                  <td>{ticket.creator?.name || '—'}</td>
                 </tr>
               ))}
             </tbody>
