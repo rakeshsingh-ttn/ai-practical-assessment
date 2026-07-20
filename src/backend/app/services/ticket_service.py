@@ -165,7 +165,8 @@ def update_ticket(db: Session, ticket_id: int, data: TicketUpdate) -> Ticket:
 
     ticket.updated_at = datetime.now(timezone.utc)
     db.commit()
-    return get_ticket_or_404(db, ticket.id)
+    db.refresh(ticket)
+    return ticket
 
 
 def change_ticket_status(db: Session, ticket_id: int, target: TicketStatus) -> Ticket:
@@ -173,7 +174,8 @@ def change_ticket_status(db: Session, ticket_id: int, target: TicketStatus) -> T
     transition(ticket, target)
     ticket.updated_at = datetime.now(timezone.utc)
     db.commit()
-    return get_ticket_or_404(db, ticket.id)
+    db.refresh(ticket)
+    return ticket
 
 
 def list_comments(db: Session, ticket_id: int) -> list[Comment]:
