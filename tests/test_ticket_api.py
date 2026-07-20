@@ -1,3 +1,6 @@
+import csv
+import io
+
 from src.backend.app.models.entities import TicketStatus
 
 
@@ -188,6 +191,24 @@ class TestTicketAPI:
         assert r.status_code == 200
         assert "'=1+1" in r.text
         assert "'+cmd" in r.text
+
+    def test_csv_export_quotes_commas_quotes_and_newlines(self, client, users):
+        description = 'He said "hello", then left\nand continued on the next line'
+        client.post(
+            "/api/tickets",
+            json={
+                "title": "CSV, quoting test",
+                "description": description,
+                "priority": "Medium",
+                "created_by": users["alice"].id,
+            },
+        )
+        r = client.get("/api/tickets/export", params={"created_by": users["alice"].id})
+        assert r.status_code == 200
+
+        rows = list(csv.DictReader(io.StringIO(r.text)))
+        exported = next(row for row in rows if row["title"] == "CSV, quoting test")
+        assert exported["description"] == description
 
     def test_title_max_length(self, client, users):
         r = client.post(
