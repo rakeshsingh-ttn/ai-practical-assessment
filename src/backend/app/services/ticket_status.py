@@ -1,3 +1,4 @@
+from src.backend.app.exceptions import InvalidTransitionError
 from src.backend.app.models.entities import Ticket, TicketStatus
 
 ALLOWED_TRANSITIONS: dict[TicketStatus, set[TicketStatus]] = {
@@ -21,8 +22,6 @@ def can_transition(current: TicketStatus, target: TicketStatus) -> bool:
 
 
 def transition(ticket: Ticket, target: TicketStatus) -> Ticket:
-    from src.backend.app.exceptions import InvalidTransitionError
-
     current = ticket.status
     if not can_transition(current, target):
         allowed = [s.value for s in sorted(ALLOWED_TRANSITIONS.get(current, set()), key=lambda x: x.value)]
