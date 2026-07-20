@@ -15,6 +15,8 @@ class UserOut(BaseModel):
 
 
 class TicketCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     title: str = Field(..., min_length=3, max_length=120)
     description: str = Field(default="", max_length=5000)
     priority: TicketPriority
@@ -31,6 +33,8 @@ class TicketCreate(BaseModel):
 
 
 class TicketUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     title: str | None = Field(default=None, min_length=3, max_length=120)
     description: str | None = Field(default=None, max_length=5000)
     priority: TicketPriority | None = None
@@ -48,6 +52,8 @@ class TicketUpdate(BaseModel):
 
 
 class TicketStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     status: TicketStatus
 
 
@@ -83,6 +89,8 @@ class TicketListOut(BaseModel):
 
 
 class CommentCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     message: str = Field(..., min_length=1, max_length=2000)
     created_by: int
 

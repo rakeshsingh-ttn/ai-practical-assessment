@@ -28,6 +28,35 @@ class TestTicketAPI:
         assert r.status_code == 422
         assert r.json()["error"]["code"] == "validation_error"
 
+    def test_create_rejects_extra_fields(self, client, users):
+        r = client.post(
+            "/api/tickets",
+            json={
+                "title": "Valid title",
+                "description": "desc",
+                "priority": "Medium",
+                "created_by": users["alice"].id,
+                "status": "Open",
+            },
+        )
+        assert r.status_code == 422
+        assert r.json()["error"]["code"] == "validation_error"
+
+    def test_patch_rejects_status_field(self, client, open_ticket):
+        r = client.patch(
+            f"/api/tickets/{open_ticket['id']}",
+            json={"status": TicketStatus.CLOSED.value},
+        )
+        assert r.status_code == 422
+        assert r.json()["error"]["code"] == "validation_error"
+
+    def test_patch_title_only_leaves_status_unchanged(self, client, open_ticket):
+        ticket_id = open_ticket["id"]
+        r = client.patch(f"/api/tickets/{ticket_id}", json={"title": "Renamed ticket"})
+        assert r.status_code == 200
+        assert r.json()["title"] == "Renamed ticket"
+        assert r.json()["status"] == TicketStatus.OPEN.value
+
     def test_create_ticket_invalid_user(self, client):
         r = client.post(
             "/api/tickets",

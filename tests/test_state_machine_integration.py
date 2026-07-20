@@ -101,8 +101,8 @@ class TestStateMachineIntegration:
             f"/api/tickets/{open_ticket['id']}",
             json={"title": "Updated title", "status": TicketStatus.CLOSED.value},
         )
-        assert r.status_code == 200
-        assert r.json()["status"] == TicketStatus.OPEN.value
+        assert r.status_code == 422
+        assert r.json()["error"]["code"] == "validation_error"
 
     def test_same_status_noop_rejected(self, client, open_ticket):
         r = client.post(
