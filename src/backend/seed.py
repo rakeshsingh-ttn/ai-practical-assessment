@@ -1,7 +1,11 @@
-"""Seed script: python -m src.backend.seed"""
+"""Seed script: python -m src.backend.seed
+
+All seeded users share the documented default password (see DEFAULT_SEED_PASSWORD).
+"""
 
 from sqlalchemy import select
 
+from src.backend.app.auth.passwords import DEFAULT_SEED_PASSWORD, hash_password
 from src.backend.app.database import SessionLocal
 from src.backend.app.models.entities import (
     Comment,
@@ -16,10 +20,30 @@ from src.backend.app.models.entities import (
 # Seed data sets statuses directly for demo coverage across all states.
 
 USERS = [
-    {"name": "Alice Admin", "email": "alice@example.com", "role": UserRole.ADMIN},
-    {"name": "Bob Agent", "email": "bob@example.com", "role": UserRole.AGENT},
-    {"name": "Carol Manager", "email": "carol@example.com", "role": UserRole.MANAGER},
-    {"name": "Dave Requester", "email": "dave@example.com", "role": UserRole.REQUESTER},
+    {
+        "name": "Alice Admin",
+        "email": "alice@example.com",
+        "role": UserRole.ADMIN,
+        "password_hash": hash_password(DEFAULT_SEED_PASSWORD),
+    },
+    {
+        "name": "Bob Agent",
+        "email": "bob@example.com",
+        "role": UserRole.AGENT,
+        "password_hash": hash_password(DEFAULT_SEED_PASSWORD),
+    },
+    {
+        "name": "Carol Manager",
+        "email": "carol@example.com",
+        "role": UserRole.MANAGER,
+        "password_hash": hash_password(DEFAULT_SEED_PASSWORD),
+    },
+    {
+        "name": "Dave Requester",
+        "email": "dave@example.com",
+        "role": UserRole.REQUESTER,
+        "password_hash": hash_password(DEFAULT_SEED_PASSWORD),
+    },
 ]
 
 TICKETS = [

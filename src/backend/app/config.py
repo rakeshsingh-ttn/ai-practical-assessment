@@ -6,6 +6,9 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./app.db"
     cors_origins: list[str] = ["http://localhost:5173"]
+    jwt_secret: str = "dev-secret-change-in-production-32b"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24
 
 
 settings = Settings()

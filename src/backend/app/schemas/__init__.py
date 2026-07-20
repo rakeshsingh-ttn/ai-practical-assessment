@@ -18,13 +18,24 @@ class UserOut(BaseModel):
     role: UserRole
 
 
+class LoginRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: str
+    password: str
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
 class TicketCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str = Field(..., min_length=3, max_length=120)
     description: str = Field(default="", max_length=5000)
     priority: TicketPriority
-    created_by: int
     assigned_to: int | None = None
 
     @field_validator("title")
@@ -100,7 +111,6 @@ class CommentCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     message: str = Field(..., min_length=1, max_length=2000)
-    created_by: int
 
     @field_validator("message")
     @classmethod

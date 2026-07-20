@@ -49,3 +49,13 @@ class CommentNotAllowedError(ConflictError):
             message=f"Comments are not allowed on tickets in '{status}' status.",
             details={"status": status},
         )
+
+
+class UnauthorizedError(AppError):
+    def __init__(self, message: str = "Authentication required"):
+        super().__init__(code="unauthorized", message=message, details=None)
+
+
+class ForbiddenError(AppError):
+    def __init__(self, message: str = "Forbidden"):
+        super().__init__(code="forbidden", message=message, details=None)
