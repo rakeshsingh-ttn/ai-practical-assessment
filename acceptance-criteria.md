@@ -2,7 +2,7 @@
 
 ## Core
 
-- [x] **Create via UI** — I can create a ticket from the React UI (title, description, priority, optional assignee); `createdBy` comes from the "acting as" user selector; new tickets start in **Open** status.
+- [x] **Create via UI** — I can create a ticket from the React UI (title, description, priority, optional assignee) after logging in; `createdBy` is set server-side from the JWT; new tickets start in **Open** status.
 - [x] **View all tickets from DB** — The ticket list shows persisted tickets (not hardcoded) with id, title, priority, status, assignee, and creator.
 - [x] **Detail view** — I can open a ticket and see all fields, the comment thread, and actions appropriate to the current status.
 - [x] **Update fields and reassign** — I can edit title, description, priority, and assignee on **Open** and **In Progress** tickets; edits are blocked on **Resolved**, **Closed**, and **Cancelled** tickets.
@@ -10,11 +10,11 @@
 - [x] **Status only via valid transitions** — Status changes use only `POST /api/tickets/{id}/status`; allowed transitions succeed; all others are rejected (409).
 - [x] **Data survives restart** — Tickets, comments, and seed data remain after stopping and restarting the backend.
 - [x] **Backend validation prevents invalid records** — The API rejects bad input (short/missing title, invalid enums, non-existent users) before persisting.
-- [x] **CSV export of self-created tickets** — Export downloads a CSV of all tickets where `createdBy` equals the currently selected acting-as user, including all ticket fields (all statuses).
+- [x] **CSV export of self-created tickets** — Export (JWT required) downloads a CSV of all tickets where `createdBy` equals the logged-in user, including all ticket fields (all statuses).
 - [x] **State-machine integration tests pass** — `pytest` proves every valid transition succeeds and invalid transitions (including from **Closed** and **Cancelled**) are rejected.
 - [x] **No secrets in repo** — No `.env`, keys, or credentials committed; only `.env.example` is in version control.
 - [x] **Search and filter** — Case-insensitive substring search on title/description plus filter by status and priority.
-- [x] **Acting-as user selector** — Header dropdown of seeded users drives `createdBy` on creates/comments and CSV export scope.
+- [x] **JWT login and role-based UI** — Login screen (`POST /api/auth/login`); `createdBy` on creates/comments and CSV export scope come from the authenticated user; status changes limited to Admin/Agent/Manager roles.
 - [x] **No delete** — No ticket delete endpoint or UI; **Cancelled** and **Closed** are terminal states.
 
 ## Validation
@@ -27,7 +27,7 @@
 - [x] **Comment message required** — Empty or whitespace-only message → **422**.
 - [x] **Comment message max length** — Message longer than 2000 characters → **422**.
 - [x] **Assignee must exist** — `assigned_to` referencing a non-existent user → **404**.
-- [x] **Creator must exist** — `created_by` referencing a non-existent user → **404**.
+- [x] **Creator not client-supplied** — `created_by` in request bodies is rejected (**422**); creator is always derived from the JWT (cannot spoof another user).
 - [x] **Ticket must exist** — Requests for a non-existent ticket id → **404**.
 - [x] **Status not on PATCH** — `status` in `PATCH /api/tickets/{id}` does not change status.
 - [x] **Clear assignee** — `PATCH` with `assigned_to: null` on an Open/In Progress ticket clears the assignee.
@@ -38,7 +38,7 @@
 
 - [x] **Consistent error shape** — All API errors return `{"error": {"code", "message", "details"}}`.
 - [x] **422 validation** — Boundary validation failures (missing fields, bad lengths, invalid enums) → **422**.
-- [x] **404 not found** — Missing ticket, user, or export `created_by` → **404**.
+- [x] **404 not found** — Missing ticket or assignee user → **404**; unauthenticated export → **401**.
 - [x] **409 invalid transition** — Disallowed status change → **409** with current status, target, and allowed targets.
 - [x] **409 edit on read-only ticket** — PATCH on **Resolved**, **Closed**, or **Cancelled** → **409**.
 - [x] **409 comment on closed ticket** — POST comment on **Closed** or **Cancelled** → **409**.
@@ -67,7 +67,7 @@
 - [x] **Integration: search/filter** — `q`, `status`, and `priority` return expected subsets (AND logic).
 - [x] **Integration: CSV export** — Returns `text/csv`; creator-only scope; header row when user has zero tickets.
 - [x] **All tests green** — `pytest -v` passes with zero failures.
-- [x] **Manual smoke: Swagger** — Full lifecycle, invalid transitions, validation failure, comment on cancelled, CSV download verified in `/docs`.
+- [x] **Manual smoke: Swagger** — Full lifecycle, invalid transitions, validation failure, comment on cancelled, JWT-scoped CSV export verified in `/docs` (Authorize with Bearer token) and in post-JWT API smoke (`test-results.md`).
 
 ## Documentation
 

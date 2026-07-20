@@ -1,8 +1,10 @@
 # Test Results
 
+> **Note:** Sections dated **2026-07-19** cover the pre-JWT (acting-as) build. Post-JWT verification is in the **Post-JWT verification (2026-07-20)** section at the bottom.
+
 ## Automated tests
 
-**Date:** 2026-07-19  
+**Date:** 2026-07-19 *(pre-JWT)*  
 **Command:** `pytest -v`  
 **Result:** **49 passed**, 0 failed
 
@@ -179,4 +181,72 @@ From `test-strategy.md` — acceptable for Day 1; address on Day 2 if time permi
 
 1. **Timestamp precision inconsistent** — seeded rows return `2026-07-19T13:33:03`; updated rows include microseconds (`...16:12:45.372199`). Cosmetic; consider normalizing `updated_at` serialization or DB column precision for tidier UI display.
 
-2. **CSV quoting untested** — no seeded description contains commas, quotes, or newlines. Logged as Day 2 integration test in `test-strategy.md` → `test_csv_export_escapes_special_characters`.
+2. **CSV quoting** — covered by `test_csv_export_quotes_commas_quotes_and_newlines` in `tests/test_ticket_api.py` (added post–Day 1).
+
+---
+
+## Post-JWT verification (2026-07-20)
+
+JWT authentication stretch merged to `main`. This section supersedes pre-JWT mutation/export checks above.
+
+### Automated tests (current)
+
+**Date:** 2026-07-20  
+**Command:** `venv/bin/python -m pytest -q`  
+**Result:** **91 passed**, 0 failed
+
+| Suite | File | Tests |
+|-------|------|-------|
+| State machine unit | `tests/test_state_machine_unit.py` | 16 |
+| State machine integration | `tests/test_state_machine_integration.py` | 13 |
+| Ticket API | `tests/test_ticket_api.py` | 30 |
+| Auth API | `tests/test_auth_api.py` | 19 |
+| Auth permissions | `tests/test_auth_permissions.py` | 13 |
+
+### Post-JWT API smoke (TestClient)
+
+**Date:** 2026-07-20  
+**Method:** One-shot script using `fastapi.testclient.TestClient` against the real app (in-memory SQLite test DB)  
+**Result:** **17/17 checks passed**, 0 failures
+
+| Step | Result | Evidence |
+|------|--------|----------|
+| 0.1 Login Alice | PASS | `POST /api/auth/login` → 200, `access_token` present |
+| 0.2 Health (public) | PASS | `{"status":"ok"}` without auth |
+| 0.3 Users (public) | PASS | 4 seeded users without auth |
+| 1.1 List tickets (public) | PASS | `GET /api/tickets` → 200, `total >= 12` |
+| 1.2 Filter status | PASS | `status=Open` filter works |
+| 2.1 Create without auth rejected | PASS | `POST /api/tickets` → **401** |
+| 2.2 Create with JWT | PASS | **201**, status `Open` |
+| 2.3 `created_by` from token | PASS | Alice's ticket has `created_by: 1` |
+| 2.4 `created_by` in body rejected | PASS | Extra field → **422** |
+| 4.1–4.3 Full lifecycle | PASS | Open → In Progress → Resolved → Closed |
+| 5.1 Closed → In Progress rejected | PASS | **409** `invalid_transition` |
+| 7.1 Export without auth | PASS | **401** |
+| 7.2 Export with JWT | PASS | **200**, `text/csv` |
+| 7.3 Export scoped to token user | PASS | Bob's export excludes Alice's smoke ticket |
+| 8.1 Requester cannot change status | PASS | Dave → `POST …/status` → **403** |
+
+Auth-specific behavior is also covered by `tests/test_auth_api.py` and `tests/test_auth_permissions.py` (login failures, `/me`, role scoping, comment/create `created_by` rejection).
+
+### Post-JWT UI smoke (Playwright, headless Chromium)
+
+**Date:** 2026-07-20  
+**Environment:** Vite dev server on `:5173` proxying to backend on `:8000`  
+**Tool:** Playwright (headless Chromium)  
+**Login:** `alice@example.com` / `Password123` (all seeded users share this password)  
+**Result:** **5/5 checks passed**, 0 failures
+
+| Check | Result | Evidence |
+|-------|--------|----------|
+| Login redirect | PASS | `/` → `/login` when logged out; after Alice login → ticket list (`Support Tickets` heading) |
+| Create ticket | PASS | `POST /api/tickets` body has no `created_by` field; header shows Alice Admin |
+| Status actions by role | PASS | Dave on ticket #1 (own Open) — no `.status-actions`; Bob on #1 — "Move to" buttons visible |
+| CSV export | PASS | `GET /api/tickets/export` with `Authorization: Bearer …`, no `created_by` query param |
+| Logout / session | PASS | After logout, `/tickets/new` redirects to `/login` |
+
+Pre-JWT UI smoke (14/14, 2026-07-19) remains valid for search, filters, validation banners, and terminal-state read-only behavior.
+
+### README dry run (post-JWT)
+
+**Status:** Not re-run to `/tmp` on 2026-07-20. Pre-JWT dry run (2026-07-19) passed through `npm run build`. Re-run with login step before production submission if required.
