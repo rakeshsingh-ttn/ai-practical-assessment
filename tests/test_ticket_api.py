@@ -77,6 +77,17 @@ class TestTicketAPI:
         assert r.json()["assigned_to"] is None
         assert r.json()["assignee"] is None
 
+    def test_api_timestamps_use_second_precision(self, client, open_ticket):
+        ticket_id = open_ticket["id"]
+        r = client.patch(
+            f"/api/tickets/{ticket_id}",
+            json={"title": "Timestamp precision check"},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        for field in ("created_at", "updated_at"):
+            assert "." not in body[field], f"{field} should not include fractional seconds"
+
     def test_update_closed_ticket_rejected(self, client, open_ticket):
         ticket_id = open_ticket["id"]
         client.post(f"/api/tickets/{ticket_id}/status", json={"status": TicketStatus.CANCELLED.value})

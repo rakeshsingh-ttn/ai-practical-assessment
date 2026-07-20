@@ -1,8 +1,12 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 from src.backend.app.models.entities import TicketPriority, TicketStatus, UserRole
+
+
+def _datetime_to_second_precision(dt: datetime) -> datetime:
+    return dt.replace(microsecond=0)
 
 
 class UserOut(BaseModel):
@@ -80,6 +84,10 @@ class TicketOut(BaseModel):
     creator: UserRef | None = None
     assignee: UserRef | None = None
 
+    @field_serializer("created_at", "updated_at")
+    def serialize_datetimes(self, dt: datetime) -> datetime:
+        return _datetime_to_second_precision(dt)
+
 
 class TicketListOut(BaseModel):
     items: list[TicketOut]
@@ -112,3 +120,7 @@ class CommentOut(BaseModel):
     created_by: int
     created_at: datetime
     author: UserRef | None = None
+
+    @field_serializer("created_at")
+    def serialize_created_at(self, dt: datetime) -> datetime:
+        return _datetime_to_second_precision(dt)
