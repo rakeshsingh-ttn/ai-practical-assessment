@@ -21,3 +21,13 @@ Backend findings from `code-review-notes.md`, applied one at a time with test ev
 | **Finding** | Ticket title/description starting with `=`, `+`, `-`, or `@` could execute as spreadsheet formulas when the CSV is opened in Excel. |
 | **Change** | Added `_sanitize_csv_cell()` in `ticket_service.py` to prefix risky cells with `'`. Added `test_csv_export_neutralizes_formula_injection`. |
 | **Test evidence** | `venv/bin/python -m pytest -q` → **51 passed** |
+
+---
+
+## Fix 3 — Silent 10k export cap (Must-fix)
+
+| | |
+|---|---|
+| **Finding** | CSV export used `limit=10000`, silently truncating users with more tickets. |
+| **Change** | `export_tickets_csv()` now pages through results in batches of 500 until all rows are exported. |
+| **Test evidence** | `venv/bin/python -m pytest -q` → **51 passed** (existing export tests) |

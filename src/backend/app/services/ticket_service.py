@@ -178,7 +178,6 @@ def create_comment(db: Session, ticket_id: int, data: CommentCreate) -> Comment:
 
 def export_tickets_csv(db: Session, created_by: int) -> str:
     get_user_or_404(db, created_by)
-    tickets, _ = list_tickets(db, created_by=created_by, limit=10000, offset=0)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -187,18 +186,31 @@ def export_tickets_csv(db: Session, created_by: int) -> str:
         "assigned_to", "assignee_name", "created_by", "creator_name",
         "created_at", "updated_at",
     ])
-    for t in tickets:
-        writer.writerow([
-            t.id,
-            _sanitize_csv_cell(t.title),
-            _sanitize_csv_cell(t.description),
-            t.priority.value,
-            t.status.value,
-            t.assigned_to or "",
-            _sanitize_csv_cell(t.assignee.name if t.assignee else ""),
-            t.created_by,
-            _sanitize_csv_cell(t.creator.name if t.creator else ""),
-            t.created_at.isoformat(),
-            t.updated_at.isoformat(),
-        ])
+
+    offset = 0
+    page_size = 500
+    while True:
+        tickets, total = list_tickets(
+            db, created_by=created_by, limit=page_size, offset=offset
+        )
+        if not tickets:
+            break
+        for t in tickets:
+            writer.writerow([
+                t.id,
+                _sanitize_csv_cell(t.title),
+                _sanitize_csv_cell(t.description),
+                t.priority.value,
+                t.status.value,
+                t.assigned_to or "",
+                _sanitize_csv_cell(t.assignee.name if t.assignee else ""),
+                t.created_by,
+                _sanitize_csv_cell(t.creator.name if t.creator else ""),
+                t.created_at.isoformat(),
+                t.updated_at.isoformat(),
+            ])
+        offset += len(tickets)
+        if offset >= total:
+            break
+
     return output.getvalue()
