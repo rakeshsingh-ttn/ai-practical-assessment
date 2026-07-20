@@ -96,6 +96,21 @@ class TestTicketAPI:
         assert len(lines) == 1
         assert lines[0].startswith("id,title,description")
 
+    def test_csv_export_neutralizes_formula_injection(self, client, users):
+        client.post(
+            "/api/tickets",
+            json={
+                "title": "=1+1",
+                "description": "+cmd",
+                "priority": "Medium",
+                "created_by": users["alice"].id,
+            },
+        )
+        r = client.get("/api/tickets/export", params={"created_by": users["alice"].id})
+        assert r.status_code == 200
+        assert "'=1+1" in r.text
+        assert "'+cmd" in r.text
+
     def test_title_max_length(self, client, users):
         r = client.post(
             "/api/tickets",

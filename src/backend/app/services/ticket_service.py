@@ -18,6 +18,14 @@ from src.backend.app.services.ticket_status import (
     transition,
 )
 
+_CSV_FORMULA_PREFIX_CHARS = "=+-@\t\r"
+
+
+def _sanitize_csv_cell(value: str) -> str:
+    if value and value[0] in _CSV_FORMULA_PREFIX_CHARS:
+        return f"'{value}"
+    return value
+
 
 def get_user_or_404(db: Session, user_id: int) -> User:
     user = db.get(User, user_id)
@@ -182,14 +190,14 @@ def export_tickets_csv(db: Session, created_by: int) -> str:
     for t in tickets:
         writer.writerow([
             t.id,
-            t.title,
-            t.description,
+            _sanitize_csv_cell(t.title),
+            _sanitize_csv_cell(t.description),
             t.priority.value,
             t.status.value,
             t.assigned_to or "",
-            t.assignee.name if t.assignee else "",
+            _sanitize_csv_cell(t.assignee.name if t.assignee else ""),
             t.created_by,
-            t.creator.name if t.creator else "",
+            _sanitize_csv_cell(t.creator.name if t.creator else ""),
             t.created_at.isoformat(),
             t.updated_at.isoformat(),
         ])

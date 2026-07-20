@@ -11,3 +11,13 @@ Backend findings from `code-review-notes.md`, applied one at a time with test ev
 | **Finding** | Unhandled exceptions returned a non-contract response body instead of `{"error": {"code", "message", "details"}}`. |
 | **Change** | Added global `@app.exception_handler(Exception)` in `src/backend/app/error_handlers.py` returning HTTP 500 with `code: "internal_error"`. Added regression test `test_internal_error_shape`. |
 | **Test evidence** | `venv/bin/python -m pytest -q` → **50 passed** (includes `test_internal_error_shape`) |
+
+---
+
+## Fix 2 — CSV formula injection (Must-fix)
+
+| | |
+|---|---|
+| **Finding** | Ticket title/description starting with `=`, `+`, `-`, or `@` could execute as spreadsheet formulas when the CSV is opened in Excel. |
+| **Change** | Added `_sanitize_csv_cell()` in `ticket_service.py` to prefix risky cells with `'`. Added `test_csv_export_neutralizes_formula_injection`. |
+| **Test evidence** | `venv/bin/python -m pytest -q` → **51 passed** |
