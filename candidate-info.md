@@ -42,7 +42,7 @@ I built a small support ticket system where seeded users log in and create/progr
 | Backend | FastAPI, SQLAlchemy 2.0, Alembic, Pydantic, uvicorn |
 | Frontend | React, Vite |
 | Database | SQLite (`app.db`), Alembic migrations |
-| Testing | pytest; manual Swagger (`/docs`); browser UI smoke; Playwright spot-checks for error banners |
+| Testing | pytest; manual Swagger (`/docs`); browser UI smoke; browser error-state checks (validation + auth banners) |
 | Docs / process | Markdown artifacts, `ai-prompts/` chat exports, `tool-workflow.md` |
 
 ## Setup Summary

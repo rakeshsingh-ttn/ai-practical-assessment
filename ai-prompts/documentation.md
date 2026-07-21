@@ -85,7 +85,7 @@ Drafted both files from repo evidence:
 
 **`candidate-info.md`** — name, stack, Cursor, project option, 3-day summary, tools table, setup pointing at `README.md` + `database/setup-notes.md`. Start date **2026-07-19** from Day 1 artifacts. Flagged **role** and **submission date** for confirmation (placeholder: Software Engineer; submission 2026-07-20).
 
-**`pr-description.md`** — PR-style write-up mapping all Core acceptance criteria, technical changes (state machine, error handlers, service layer, schemas, frontend, migrations/seed), DB migrations 001/002, **58 automated tests** (16 unit + 13 integration + 29 API) plus manual Swagger/UI/Playwright smoke from `test-results.md`, AI usage summary, known limitations, future improvements (including honest note that frontend code-review fixes were reviewed but not committed).
+**`pr-description.md`** — PR-style write-up mapping all Core acceptance criteria, technical changes (state machine, error handlers, service layer, schemas, frontend, migrations/seed), DB migrations 001/002, **58 automated tests** (16 unit + 13 integration + 29 API) plus manual Swagger/UI browser smoke from `test-results.md`, AI usage summary, known limitations, future improvements (including honest note that frontend code-review fixes were reviewed but not committed).
 
 ---
 

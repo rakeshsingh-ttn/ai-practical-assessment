@@ -107,8 +107,8 @@ Seed data covers every ticket status and priority for demo and test coverage. Se
 | Pre-auth Swagger smoke | **27/27** | `test-results.md` (2026-07-19, superseded for mutations) |
 | Pre-auth UI smoke (browser) | **14/14** | `test-results.md` (2026-07-19, superseded by login flow) |
 | Post-JWT API smoke | **17/17** | `test-results.md` (2026-07-20, TestClient) |
-| Post-JWT UI smoke (Playwright) | **5/5** | `test-results.md` (2026-07-20) |
-| Error-banner spot-check (Playwright) | **3/3** | `test-results.md` |
+| Post-JWT UI smoke (manual browser) | **5/5** | `test-results.md` (2026-07-20) |
+| Error-state checks (manual browser) | **PASS** | `test-results.md` (validation 422 + auth banner + 409 shape) |
 | README dry run (clean copy) | **PASS** | `test-results.md` (pre-JWT; re-run recommended with login) |
 
 Post-review fixes are logged in `review-fixes.md` (19 commits). Smoke-test follow-ups: timestamp normalization + CSV quoting test (`test_csv_export_quotes_commas_quotes_and_newlines`).

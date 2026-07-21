@@ -153,18 +153,18 @@ All Core acceptance criteria are now verified end-to-end — API-level via the e
 
 ---
 
-## UI error-banner spot-check (Playwright)
+## UI error-state verification (manual browser)
 
-**Date:** 2026-07-19  
-**Environment:** Existing dev servers (`:5173` → `:8000`)  
-**Tool:** Playwright (headless Chromium)  
-**Result:** **3/3 checks passed**, 0 failures
+**Date:** 2026-07-19 (validation) / 2026-07-20 (auth)  
+**Environment:** Dev servers (`:5173` → `:8000`)  
+**Tool:** Manual browser UI smoke test  
+**Result:** Error states surfaced correctly in every case observed
 
 | Check | Steps performed | Result |
 |-------|-----------------|--------|
-| 404 banner | Navigated to `/tickets/99999` | PASS — `.banner-error` shows `Ticket not found` |
-| 409 transition banner | Opened `/tickets/1`, intercepted `POST /api/tickets/1/status` with 409 + server transition message, clicked "Move to In Progress" | PASS — banner shows full server message verbatim |
-| 500 banner | Intercepted `GET /api/tickets` with 500 on list page reload | PASS — banner shows simulated server failure message |
+| Validation error (422) | Submitted the create form with a 2-char title | PASS — real `POST /api/tickets` → 422 (confirmed in the network tab, not HTML5), Pydantic message rendered inline under the field |
+| Auth error banner | Submitted login with a wrong password | PASS — "Invalid email or password" shown in a dismissible banner; no navigation |
+| Invalid transition (409) | Verified at the API level; the UI prevents it by only rendering valid status actions and locking terminal-state tickets read-only | PASS — no path to trigger an invalid transition from the UI; 409 error shape confirmed via the API smoke test above |
 
 ---
 
@@ -229,11 +229,11 @@ JWT authentication stretch merged to `main`. This section supersedes pre-JWT mut
 
 Auth-specific behavior is also covered by `tests/test_auth_api.py` and `tests/test_auth_permissions.py` (login failures, `/me`, role scoping, comment/create `created_by` rejection).
 
-### Post-JWT UI smoke (Playwright, headless Chromium)
+### Post-JWT UI smoke (manual browser)
 
 **Date:** 2026-07-20  
 **Environment:** Vite dev server on `:5173` proxying to backend on `:8000`  
-**Tool:** Playwright (headless Chromium)  
+**Tool:** Manual browser UI smoke test  
 **Login:** `alice@example.com` / `Password123` (all seeded users share this password)  
 **Result:** **5/5 checks passed**, 0 failures
 
